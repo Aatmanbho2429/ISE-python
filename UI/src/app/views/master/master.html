@@ -1,0 +1,47 @@
+<!-- <section class="sidebar">
+    i am sidebar
+</section>
+<section class="main-content">
+    <router-outlet></router-outlet>
+</section> -->
+
+<div class="app-shell" [class.sidebar-collapsed]="isSidebarCollapsed">
+
+    <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
+        <div class="sidebar__logo">
+            <span>{{ "lblISESearchEngine" | translate }}</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <ul>
+                <li routerLinkActive="active">
+                    <a routerLink="/image">
+                        <i class="pi pi-search"></i>
+                        <span class="label">{{ "lblSearchEngine" | translate }}</span>
+                    </a>
+                </li>
+
+                <li routerLinkActive="active">
+                    <a routerLink="/settings">
+                        <i class="pi pi-info-circle"></i>
+                        <span class="label">{{ "lblUserGuide" | translate }}</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <div class="main-area">
+        <button
+            pButton
+            icon="pi pi-bars"
+            class="p-button-text sidebar-toggle"
+            (click)="toggleSidebar()">
+        </button>
+
+        <main class="content">
+            <router-outlet></router-outlet>
+        </main>
+    </div>
+
+</div>

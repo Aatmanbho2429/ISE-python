@@ -1,0 +1,113 @@
+.sidebar {
+    background-color: $color-gray-900;
+    border-right: 1px solid $color-gray-800;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: hidden;
+    height: 100vh;
+
+    &__logo {
+        height: 6.4rem;
+        padding: 0 1.6rem;
+        display: flex;
+        align-items: center;
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: $color-green-500;
+        background-color: $color-gray-950;
+        border-bottom: 1px solid $color-gray-800;
+        transition: padding 0.35s ease;
+    }
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 1rem 1rem;
+    transition: padding 0.3s ease;
+
+    & ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    & li {
+        margin: 0.4rem 0;
+
+        &.active a {
+            background-color: rgba($color-green-500, 0.15);
+            color: $color-green-400;
+        }
+    }
+
+    & a {
+        display: flex;
+        align-items: center;
+        gap: 1.2rem;
+        padding: 1rem 1.6rem;
+        font-size: 1.4rem;
+        color: $color-gray-400;
+        text-decoration: none;
+        border-radius: 0.6rem;
+
+        transition:
+            background-color 0.2s ease,
+            color 0.2s ease,
+            padding 0.35s ease,
+            justify-content 0.35s ease;
+
+        &:hover {
+            background-color: $color-gray-800;
+            color: $color-gray-100;
+        }
+
+        & i {
+            font-size: 1.6rem;
+            min-width: 2rem;
+            transition: transform 0.35s ease;
+        }
+
+        & .label {
+            white-space: nowrap;
+            opacity: 1;
+            transform: translateX(0);
+            transition:
+                opacity 0.2s ease,
+                transform 0.35s ease;
+        }
+    }
+}
+
+.sidebar.collapsed {
+    .sidebar__logo {
+        padding: 1rem;
+        font-size: 1rem;
+        justify-content: center;
+    }
+
+    .sidebar-nav {
+        padding: 1rem 0;
+
+        a {
+            justify-content: center;
+            // padding: 1rem;
+        }
+
+        .label {
+            opacity: 0;
+            transform: translateX(-1rem);
+            pointer-events: none;
+            display: none;
+        }
+
+        i {
+            transform: scale(1.1);
+        }
+    }
+}
+
+.sidebar-toggle {
+    margin: 1rem;
+    align-self: flex-start;
+}
