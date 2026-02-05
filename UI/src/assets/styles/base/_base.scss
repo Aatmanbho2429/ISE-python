@@ -15,7 +15,7 @@ body {
     font-family: "Roboto", sans-serif;
     font-weight: 400;
     line-height: 1.7;
-    background-color: $color-gray-950;
+    background-color: $color-gray-50;
     color: $color-gray-400;
 }
 
@@ -31,7 +31,7 @@ body {
     grid-template-columns: 26rem 1fr;
     height: 100vh;
     overflow: hidden;
-    background-color: $color-gray-950;
+    background-color: $color-gray-50;
 
     transition: grid-template-columns 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -43,7 +43,7 @@ body {
 .main-area {
     display: flex;
     flex-direction: column;
-    background-color: $color-gray-900;
+    background-color: $color-gray-100;
     min-width: 0;
     height: 100vh;
 }
@@ -53,8 +53,8 @@ body {
     overflow-y: auto;
     padding: 2rem;
     overflow-y: auto;
-    background-color: $color-gray-950;
-    color: $color-gray-400;
+    background-color: $color-white;
+    color:$color-black;
 
 
     scrollbar-width: thin; /* Firefox */

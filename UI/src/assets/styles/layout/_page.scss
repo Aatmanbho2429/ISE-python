@@ -1,24 +1,24 @@
 .page {
     max-width: 100%;
-    color: $color-gray-100;
+    color: $color-black;
 
     &__heading {
         font-size: 2.4rem;
         font-weight: 700;
         margin-bottom: 2rem;
-        color: $color-white;
+        color: $color-navy-600;
 
         span {
             display: block;
             font-size: 1.3rem;
             font-weight: 400;
-            color: $color-gray-400;
+            color: $color-gray-600;
             margin-top: 0.4rem;
         }
     }
 }
 
     .p-card {
-        background: $color-gray-800 !important;
+        background: $color-navy-600 !important;
         border: 1px solid $color-gray-700 !important;
     }

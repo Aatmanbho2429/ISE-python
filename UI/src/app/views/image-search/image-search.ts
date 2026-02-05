@@ -76,11 +76,12 @@ export class ImageSearch implements OnInit {
   }
 
   fixPath(p: string): string {
-    return "" + p.replace(/\\/g, "/");
+    return "" + p.replace('file:///', '');
   }
 
   async selectFolderPath() {
     let a = await this.electronServiceCustom.OpenFolderDialog();
+    console.log('Selected folder path: ', a);
     this.ngZone.run(() => {
       this.folderPath = a;
     });
@@ -89,10 +90,9 @@ export class ImageSearch implements OnInit {
 
   async selectImagePath() {
     let a = await this.electronServiceCustom.OpenFileDialog();
+    console.log(this.fixPath(a));
     this.ngZone.run(() => {
-      this.queryString = a;
-      console.log(this.queryString)
-
+      this.queryString = this.fixPath(a);
     });
     this.cdr.detectChanges();
   }
@@ -187,47 +187,6 @@ export class ImageSearch implements OnInit {
       );
     }
   }
-
-  //   async addFolderToVectroDb() {
-  //   if (this.folderPath !== '' && this.queryString !== '') {
-
-  //     this.ngZone.run(() => {
-  //       this.isSearching = true;
-  //       this.results = [];
-  //     });
-
-  //     try {
-  //       const results = await this.electronServiceCustom.Search(
-  //         this.queryString,
-  //         this.folderPath,
-  //         this.number_of_results
-  //       );
-  //       console.log(results);
-
-  //       this.ngZone.run(() => {
-  //         this.results = results.map((r: any) => ({
-  //           path: this.fixPath(r.path),
-  //           score: r.similarity
-  //         }));
-  //         this.systemService.showSuccess("Similar images found. Please scoll down");
-  //       });
-
-  //     } catch (error) {
-  //       console.error(error);
-  //     } finally {
-  //       this.ngZone.run(() => {
-  //         this.isSearching = false;
-  //         this.cdr.detectChanges();
-  //       });
-  //     }
-  //   }
-  // }
-
-
-
-  // async OpenImgDialog(){
-  //   await this.electronServiceCustom.OpenFileDialog();
-  // }
 
 }
 
