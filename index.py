@@ -42,6 +42,25 @@ webview.create_window(
     "My App",'http://localhost:4200/',js_api=api
 )
 
+# def resource_path(path):
+#     try:
+#         base_path = sys._MEIPASS
+#     except Exception:
+#         base_path = os.path.abspath(".")
+
+#     return os.path.join(base_path, path)
+
+
+# html_path = resource_path(
+#     "dist/vynce-standalone/browser/index.html"
+# )
+
+# webview.create_window(
+#     "My App",
+#     html_path,
+#     js_api=api
+# )
+
 webview.start(gui="edgechromium",
     debug=True,
     http_server=True,
