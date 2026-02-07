@@ -32,11 +32,7 @@
     </aside>
 
     <div class="main-area">
-        <button
-            pButton
-            icon="pi pi-bars"
-            class="p-button-text sidebar-toggle"
-            (click)="toggleSidebar()">
+        <button pButton icon="pi pi-bars" class="p-button-text sidebar-toggle" (click)="toggleSidebar()">
         </button>
 
         <main class="content">
@@ -45,3 +41,23 @@
     </div>
 
 </div>
+
+<div class="invalid-license-card" *ngIf="isLicenseValid">
+    <div class="invalid-license-card__overlay"></div>
+    <div class="invalid-license-card__content">
+        <h3 class="invalid-license-card__heading">{{ "lblInvalidLicenseHeading" | translate }}</h3>
+        <p class="invalid-license-card__message">{{ verifyLicenseResponse.message }}</p>
+
+        <div class="invalid-license-card__footer">
+            <p class="invalid-license-card__contact">{{ "lblInvalidLicenseMessage" | translate }}</p>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- <p-dialog maskStyleClass="backdrop-blur-sm"  styleClass="!border-0 !bg-transparent">
+    <ng-template #headless>
+        
+    </ng-template>
+</p-dialog> -->

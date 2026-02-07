@@ -24,29 +24,6 @@ export class SystemService {
         return this.http.get<any>('assets/menu.json').toPromise().then(res => <menuItem[]>res.data).then(data => { return data; });
     }
 
-    // logout() {
-    //     let config = {
-    //         auth: {
-    //             clientId: environment.clientID,
-    //             redirectUri: environment.logoutURL + '/login',
-    //             postLogoutRedirectUri: environment.logoutURL + '/login',
-    //         },
-    //     };
-    //     const myMsal = new PublicClientApplication(config);
-    //     const logoutRequest = {
-    //         account: myMsal.getAccountByHomeId(this.cookie.GetCookie(CookieConstant.cal_HomeAccountId)),
-    //         mainWindowRedirectUri: environment.logoutURL + '/login',
-    //         redirectUri: environment.logoutURL + '/login',
-    //     };
-    //     this.cookie.DeleteAllCookies();
-    //     sessionStorage.clear();
-    //     localStorage.clear();
-    //     this.authService.handleRedirectObservable().subscribe(x => {
-    //         this.router.navigate(['/login']);
-    //     });
-
-    // }
-
     copy(data) {
         return JSON.parse(JSON.stringify(data));
     }

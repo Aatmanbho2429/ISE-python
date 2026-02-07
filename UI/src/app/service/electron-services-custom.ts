@@ -27,6 +27,11 @@ export class ElectronServicesCustom {
     let result=await window.pywebview.api.selectFile();
     return result;
   }
+
+  async ValidateLicense():Promise<any> {
+    let result=await window.pywebview.api.validateLicense();
+    return result;
+  }
 }
 
 declare global {

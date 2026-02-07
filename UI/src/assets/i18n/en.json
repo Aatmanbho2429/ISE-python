@@ -58,6 +58,8 @@
   "lblSourcePath":"Source Path",
   "lblMatchConfidence":"Match Confidence",
   "lblNoOfSearchResult":"Number of search result (optional)",
+  "lblInvalidLicenseHeading":"License Verification Failed",
+  "lblInvalidLicenseMessage":"Please contact aatmanbhoraniya12@gmail.com for support.",
   "lblSearchEngine":"Search Engine"
 
 }
