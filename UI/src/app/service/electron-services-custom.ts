@@ -10,12 +10,9 @@ export class ElectronServicesCustom {
 
   }
 
-  Search(query_string: string, folder_path: string, number_of_results: number) {
-    let returnValue;
-    window.pywebview.api.add(5, 3).then((result: number) => {
-      returnValue = result;
-    });
-    return returnValue;
+  async Search(query_string: string, folder_path: string, number_of_results: number) {
+    let result=await window.pywebview.api.start_search(query_string, folder_path, number_of_results);
+    return result;
   }
 
   async OpenFolderDialog() :Promise<string>{
