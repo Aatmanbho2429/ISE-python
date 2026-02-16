@@ -97,96 +97,192 @@ export class ImageSearch implements OnInit {
     this.cdr.detectChanges();
   }
 
+  // async addFolderToVectroDb() {
+  //   if (this.folderPath !== '' && this.queryString !== '') {
+
+  //     this.ngZone.run(() => {
+  //       this.isSearching = true;
+  //       this.results = [];
+  //     });
+
+  //     try {
+  //       if (this.selectedResultNumber) {
+  //         this.number_of_results = this.selectedResultNumber
+  //       }
+  //       const results = await this.electronServiceCustom.Search(
+  //         this.queryString,
+  //         this.folderPath,
+  //         this.number_of_results
+  //       );
+
+
+  //       this.ngZone.run(() => {
+  //         if (results && results.length > 0) {
+  //           this.results = results.map((r: any) => ({
+  //             path: this.fixPath(r.path),
+  //             score: r.similarity
+  //           }));
+
+  //           this.systemService.showSuccess(
+  //             `${results.length} similar images found. Scroll down to view results.`
+  //           );
+  //         } else {
+  //           this.systemService.showWarning(
+  //             'No similar images found for the given query.'
+  //           );
+  //         }
+  //       });
+
+  //     } catch (err: any) {
+
+  //       let payload: any = null;
+
+  //       try {
+  //         const msg = err?.message || '';
+  //         const jsonStart = msg.indexOf('{');
+
+  //         if (jsonStart !== -1) {
+  //           payload = JSON.parse(msg.substring(jsonStart));
+  //         } else {
+  //           throw new Error('No JSON payload');
+  //         }
+  //       } catch {
+  //         payload = {
+  //           error: 'Unknown error',
+  //           details: err?.message || 'Search failed'
+  //         };
+  //       }
+
+  //       this.ngZone.run(() => {
+
+  //         if (payload.error?.toLowerCase().includes("license")) {
+  //           this.displayMembershipPopup = true;
+
+  //           this.systemService.showError(
+  //             payload.details || payload.error
+  //           );
+
+  //           // if (payload.device_id) {
+  //           //   this.systemService.showWarning(
+  //           //     `Your Device ID: ${payload.device_id}`
+  //           //   );
+  //           // }
+
+  //           return;
+  //         }
+
+  //         this.systemService.showError(
+  //           payload.details || payload.error || "Search failed"
+  //         );
+  //       });
+  //     } finally {
+  //       this.ngZone.run(() => {
+  //         this.isSearching = false;
+  //         this.cdr.detectChanges();
+  //       });
+  //     }
+  //   } else {
+  //     this.systemService.showWarning(
+  //       'Please select a folder and enter a search query.'
+  //     );
+  //   }
+  // }
+
   async addFolderToVectroDb() {
-    if (this.folderPath !== '' && this.queryString !== '') {
-
-      this.ngZone.run(() => {
-        this.isSearching = true;
-        this.results = [];
-      });
-
-      try {
-        if (this.selectedResultNumber) {
-          this.number_of_results = this.selectedResultNumber
-        }
-        const results = await this.electronServiceCustom.Search(
-          this.queryString,
-          this.folderPath,
-          this.number_of_results
-        );
-
-
-        this.ngZone.run(() => {
-          if (results && results.length > 0) {
-            this.results = results.map((r: any) => ({
-              path: this.fixPath(r.path),
-              score: r.similarity
-            }));
-
-            this.systemService.showSuccess(
-              `${results.length} similar images found. Scroll down to view results.`
-            );
-          } else {
-            this.systemService.showWarning(
-              'No similar images found for the given query.'
-            );
-          }
-        });
-
-      } catch (err: any) {
-
-        let payload: any = null;
-
-        try {
-          const msg = err?.message || '';
-          const jsonStart = msg.indexOf('{');
-
-          if (jsonStart !== -1) {
-            payload = JSON.parse(msg.substring(jsonStart));
-          } else {
-            throw new Error('No JSON payload');
-          }
-        } catch {
-          payload = {
-            error: 'Unknown error',
-            details: err?.message || 'Search failed'
-          };
-        }
-
-        this.ngZone.run(() => {
-
-          if (payload.error?.toLowerCase().includes("license")) {
-            this.displayMembershipPopup = true;
-
-            this.systemService.showError(
-              payload.details || payload.error
-            );
-
-            // if (payload.device_id) {
-            //   this.systemService.showWarning(
-            //     `Your Device ID: ${payload.device_id}`
-            //   );
-            // }
-
-            return;
-          }
-
-          this.systemService.showError(
-            payload.details || payload.error || "Search failed"
-          );
-        });
-      } finally {
-        this.ngZone.run(() => {
-          this.isSearching = false;
-          this.cdr.detectChanges();
-        });
-      }
-    } else {
-      this.systemService.showWarning(
-        'Please select a folder and enter a search query.'
-      );
-    }
+  if (!this.folderPath || !this.queryString) {
+    this.systemService.showWarning(
+      'Please select a folder and enter a search query.'
+    );
+    return;
   }
+
+  this.ngZone.run(() => {
+    this.isSearching = true;
+    this.results = [];
+  });
+
+  try {
+    if (this.selectedResultNumber) {
+      this.number_of_results = this.selectedResultNumber;
+    }
+
+    const rawResponse = await this.electronServiceCustom.Search(
+      this.queryString,
+      this.folderPath,
+      this.number_of_results
+    );
+
+    const response = typeof rawResponse === 'string'
+      ? JSON.parse(rawResponse)
+      : rawResponse;
+
+    this.ngZone.run(() => {
+      const results = response?.data?.results || [];
+      const errors  = response?.data?.errors || [];
+
+      if (results.length > 0) {
+        this.results = results.map((r: any) => ({
+          path: this.fixPath(r.path),
+          score: r.similarity
+        }));
+
+        this.systemService.showSuccess(
+          `${results.length} similar images found. Scroll down to view results.`
+        );
+      } else {
+        this.systemService.showWarning(
+          'No similar images found for the given query.'
+        );
+      }
+
+      if (errors.length > 0) {
+        console.warn('Search completed with errors:', errors);
+
+        this.systemService.showWarning(
+          `${errors.length} issue(s) occurred during processing. Results may be partial.`
+        );
+      }
+    });
+
+  } catch (err: any) {
+    let payload: any = null;
+
+    try {
+      const msg = err?.message || '';
+      const jsonStart = msg.indexOf('{');
+
+      if (jsonStart !== -1) {
+        payload = JSON.parse(msg.substring(jsonStart));
+      } else {
+        throw new Error('No JSON payload');
+      }
+    } catch {
+      payload = {
+        error: 'Unknown error',
+        details: err?.message || 'Search failed'
+      };
+    }
+
+    this.ngZone.run(() => {
+      if (payload.error?.toLowerCase().includes('license')) {
+        this.displayMembershipPopup = true;
+        this.systemService.showError(payload.details || payload.error);
+        return;
+      }
+
+      this.systemService.showError(
+        payload.details || payload.error || 'Search failed'
+      );
+    });
+
+  } finally {
+    this.ngZone.run(() => {
+      this.isSearching = false;
+      this.cdr.detectChanges();
+    });
+  }
+}
+
 
 }
 
