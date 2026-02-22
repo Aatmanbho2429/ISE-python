@@ -112,18 +112,18 @@
 
             </div> -->
             <div class="image-card" *ngFor="let item of results">
-                <div class="image-card__img-container">
+                <!-- <div class="image-card__img-container">
                     <img class="image-card__img" [src]="item.path" alt="can't load image">
-                </div>
+                </div> -->
 
                 <div class="image-card__footer">
                     <span class="image-card__label">{{ "lblSourcePath" | translate }}</span>
                     <span class="image-card__path">
-                        {{item.path}}
+                        {{item.path}} <p-button label="Open" class="image-card__path-btn" severity="contrast" (click)="openFilePath(item.path)"/>
                     </span>
 
                     <span class="image-card__score">
-                        <span class="image-card__score-label">{{ "lblMatchConfidence" | translate }}</span>
+                        <span class="image-card__score-label">{{ "lblMatchConfidence" | translate }} </span>
                         <span class="image-card__score-value">{{ (item.score * 100) | number:'1.2-2' }}%</span>
                     </span>
                 </div>

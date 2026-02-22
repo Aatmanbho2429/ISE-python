@@ -98,18 +98,6 @@
     line-height: 1.5;
     color: $color-gray-200;
     word-break: break-all;
-    background: linear-gradient(
-      90deg,
-      rgba($color-diamond, 0.18),
-      rgba($color-diamond, 0.08)
-    );
-    padding: 0.5rem 0.9rem;
-    border-radius: 0.8rem;
-    border: 1px solid rgba($color-diamond, 0.25);
-    &-btn{
-      margin-left: 1rem;
-    }
-
   }
 
   /* Confidence badge */

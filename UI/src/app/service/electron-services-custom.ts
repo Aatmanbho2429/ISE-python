@@ -29,6 +29,15 @@ export class ElectronServicesCustom {
     let result=await window.pywebview.api.validateLicense();
     return result;
   }
+
+  async OpenFilePath(path:string):Promise<any> {
+    await window.pywebview.api.openFilePath(path);
+  }
+
+  async getFolderTree():Promise<any> {
+    let result=await window.pywebview.api.getFolderTree();
+    return result;
+  }
 }
 
 declare global {
