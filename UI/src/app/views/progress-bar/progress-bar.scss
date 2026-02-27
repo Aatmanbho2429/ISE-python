@@ -1,0 +1,93 @@
+// Full-screen transparent blocking overlay
+// Sits over everything, prevents all pointer events while active
+.ise-overlay {
+    position: fixed;
+    inset: 0;                          // top/right/bottom/left: 0
+    z-index: 9998;                     // below progress card, above everything else
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(1.5px);      // subtle blur so user knows UI is locked
+    cursor: not-allowed;
+    pointer-events: all;               // explicitly capture all clicks
+}
+
+// Progress card — floats above overlay
+.ise-progress {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;                     // above overlay
+    width: 420px;
+    max-width: calc(100vw - 48px);
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px 20px 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    pointer-events: none;              // card itself doesn't need to be clickable
+}
+
+.ise-progress__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.ise-progress__phase {
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+}
+
+.ise-progress__percent {
+    font-size: 13px;
+    font-weight: 700;
+    color: #222;
+}
+
+.ise-progress__track {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.ise-progress__fill {
+    height: 100%;
+    background: #6366f1;
+    border-radius: 999px;
+    transition: width 0.35s ease;
+
+    &--done {
+        background: #22c55e;
+    }
+}
+
+.ise-progress__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.ise-progress__file {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 65%;
+}
+
+.ise-progress__counts {
+    font-size: 11px;
+    color: #aaa;
+    white-space: nowrap;
+}
+
+.ise-progress__errors {
+    color: #ef4444;
+    font-weight: 600;
+}
