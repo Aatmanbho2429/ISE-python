@@ -1,0 +1,32 @@
+<!-- Full-screen blocking overlay — prevents all clicks when active -->
+<div class="ise-overlay" *ngIf="progress.active"></div>
+
+<!-- Progress card — sits above overlay -->
+<div class="ise-progress" *ngIf="visible">
+
+  <div class="ise-progress__header">
+    <span class="ise-progress__phase">{{ phaseLabel }}</span>
+    <span class="ise-progress__percent">{{ progress.percent }}%</span>
+  </div>
+
+  <div class="ise-progress__track">
+    <div
+      class="ise-progress__fill"
+      [class.ise-progress__fill--done]="progress.percent >= 100"
+      [style.width.%]="progress.percent">
+    </div>
+  </div>
+
+  <div class="ise-progress__footer">
+    <span class="ise-progress__file" *ngIf="progress.current">
+      {{ progress.current }}
+    </span>
+    <span class="ise-progress__counts">
+      {{ progress.done }} / {{ progress.total }}
+      <span class="ise-progress__errors" *ngIf="progress.errors > 0">
+        &nbsp;· {{ progress.errors }} error{{ progress.errors !== 1 ? 's' : '' }}
+      </span>
+    </span>
+  </div>
+
+</div>

@@ -38,6 +38,11 @@ export class ElectronServicesCustom {
     let result=await window.pywebview.api.getFolderTree();
     return result;
   }
+
+  async getProgress(): Promise<any> {
+    const raw = await window.pywebview.api.get_progress();
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  }
 }
 
 declare global {
