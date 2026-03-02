@@ -33,7 +33,7 @@
 
                 <span class="tree-folder__counts"
                     *ngIf="asFolderData(node).status !== 'folder_missing'">
-                    {{ asFolderData(node).indexed }} / {{ asFolderData(node).total_on_disk }} indexed
+                    {{ asFolderData(node).not_loaded }} / {{ asFolderData(node).total_on_disk }} indexed
                     <span class="tree-folder__not-loaded"
                         *ngIf="asFolderData(node).not_loaded > 0">
                         &nbsp;· {{ asFolderData(node).not_loaded }} not loaded

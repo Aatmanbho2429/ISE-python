@@ -29,13 +29,32 @@ def get_connection() -> sqlite3.Connection:
     return con
 
 
-def cleanup_missing(con: sqlite3.Connection):
-    rows    = con.execute("SELECT path FROM files").fetchall()
-    missing = [r[0] for r in rows if not os.path.exists(r[0])]
-    if missing:
-        con.executemany("DELETE FROM files WHERE path=?", [(p,) for p in missing])
-        con.commit()
+# def cleanup_missing(con: sqlite3.Connection):
+#     rows    = con.execute("SELECT path FROM files").fetchall()
+#     missing = [r[0] for r in rows if not os.path.exists(r[0])]
+#     if missing:
+#         con.executemany("DELETE FROM files WHERE path=?", [(p,) for p in missing])
+#         con.commit()
+def cleanup_missing_in_folder(con: sqlite3.Connection, index, folder_path: str):
+    rows = con.execute(
+        "SELECT path, faiss_id FROM files WHERE path LIKE ?",
+        (folder_path + "%",)
+    ).fetchall()
 
+    missing_paths    = []
+    missing_faiss_ids = []
+
+    for path, faiss_id in rows:
+        if not os.path.exists(path):
+            missing_paths.append((path,))
+            missing_faiss_ids.append(faiss_id)
+
+    if missing_paths:
+        con.executemany("DELETE FROM files WHERE path=?", missing_paths)
+        # Also remove from FAISS so no orphaned vectors
+        from app.core import indexer
+        indexer.remove_embeddings(index, missing_faiss_ids)
+        con.commit()
 
 def find_by_hash(con: sqlite3.Connection, hash_value: str):
     """Returns (path, faiss_id) or (None, None)"""

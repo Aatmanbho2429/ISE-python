@@ -39,6 +39,7 @@ export class FolderStatus implements OnInit {
         });
         try {
             const data: FolderStatusResponse = await this.electronService.getFolderStatuses();
+            console.log(data)
             this.ngZone.run(() => {
                 this.tree      = data.tree;
                 this.flat_list = data.flat_list;

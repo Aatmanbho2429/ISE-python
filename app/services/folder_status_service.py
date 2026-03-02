@@ -5,10 +5,6 @@ IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".tiff", ".tif", ".psd", ".psb")
 
 
 def _build_tree_recursive(folder: str, indexed_set: set) -> dict:
-    """
-    Recursively build a PrimeNG TreeNode for a folder and all its subfolders.
-    Returns None if folder has no images anywhere in its tree.
-    """
     if not os.path.exists(folder):
         return None
 

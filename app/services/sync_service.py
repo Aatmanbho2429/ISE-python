@@ -10,39 +10,39 @@ from app.utils.file_utils import fast_hash, scan_images
 from app.utils.image_loader import preprocess_batch_parallel
 
 
+def _is_under(path: str, folder: str) -> bool:
+    """Returns True if path is inside folder (including subfolders)."""
+    return os.path.normpath(path).startswith(os.path.normpath(folder) + os.sep)
+
+
 def sync_folder(index, folder_path: str, response) -> None:
-    folder_path   = os.path.normpath(folder_path)
-    current_files = list(scan_images(folder_path))
-    seen_hashes   = set()
+    folder_path     = os.path.normpath(folder_path)
+    current_files   = list(scan_images(folder_path))
+    seen_hashes     = set()
     needs_embedding = []
 
     con = db.get_connection()
-    db.cleanup_missing(con)
+    db.cleanup_missing_in_folder(con, index, folder_path)
 
     # ── Step 1: Hash all files in parallel ──────────────────────────────
-    # Each thread opens its OWN connection — shared con is never touched inside threads
     set_progress(done=0, total=len(current_files), current="", phase="hashing", errors=0)
 
     def hash_one(path):
         thread_con = db.get_connection()
         try:
             current_mtime = os.path.getmtime(path)
-            existing = db.find_by_path(thread_con, path)
+            existing      = db.find_by_path(thread_con, path)
             if existing and abs(existing[2] - current_mtime) < 0.001:
-                return path, existing[1], None, current_mtime  # mtime unchanged — skip disk read
-            return path, fast_hash(path), None, current_mtime  # hash from disk
+                return path, existing[1], None, current_mtime
+            return path, fast_hash(path), None, current_mtime
         except Exception as e:
             return path, None, str(e), 0.0
         finally:
-            thread_con.close()  # always release thread connection
+            thread_con.close()
 
-    # Collect ALL thread results into a list BEFORE touching con again
-    hash_results = []
     with ThreadPoolExecutor(max_workers=NUM_WORKERS) as ex:
         hash_results = list(ex.map(hash_one, current_files))
-    # ← executor is fully shut down here — all threads finished, all thread_cons closed
 
-    # Now process results single-threadedly with main con — fully safe
     hashed_done = 0
     for path, h, err, mtime in hash_results:
         hashed_done += 1
@@ -58,24 +58,43 @@ def sync_folder(index, folder_path: str, response) -> None:
         existing_path, existing_faiss_id = db.find_by_hash(con, h)
 
         if existing_faiss_id is not None:
-            if existing_path != path:
-                # File renamed/moved — update path only, no re-embed
+            if existing_path == path:
+                # Exact match — already indexed correctly
+                response.data["success"].append(path)
+
+            elif _is_under(existing_path, folder_path):
+                # ── existing path is INSIDE current folder ───────────────
+                # This means the hash already belongs to a file in this
+                # folder (e.g. braided\file.jpg when scanning braided2)
+                # DO NOT move it — treat current file as a new copy
+                # needing its own embedding
+                needs_embedding.append((path, h, mtime))
+
+            elif not os.path.exists(existing_path):
+                # ── existing path is OUTSIDE folder and gone from disk ───
+                # True rename/move — safe to update path in DB
                 db.move_file(con, existing_path, path)
                 con.commit()
-            response.data["success"].append(path)
+                response.data["success"].append(path)
+
+            else:
+                # ── existing path is OUTSIDE folder and still on disk ────
+                # File was copied from another folder
+                # Both files exist — give this one its own embedding
+                needs_embedding.append((path, h, mtime))
+
         else:
-            # Content-change orphan fix:
-            # Path exists in DB with a different hash → file was edited
-            # Remove old FAISS vector before re-embedding
+            # Hash not in DB at all — brand new file or edited content
             existing_by_path = db.find_by_path(con, path)
             if existing_by_path:
-                old_faiss_id = existing_by_path[0]
-                indexer.remove_embeddings(index, [old_faiss_id])
+                # Same path, different hash — file was edited
+                # Remove old FAISS vector first
+                indexer.remove_embeddings(index, [existing_by_path[0]])
                 db.delete_file(con, path)
                 con.commit()
             needs_embedding.append((path, h, mtime))
 
-    # ── Step 2: Embed new/changed files in batches ───────────────────────
+    # ── Step 2: Embed new/changed/copied files in batches ────────────────
     total    = len(needs_embedding)
     done     = 0
     embedder = Embedder()
@@ -84,9 +103,9 @@ def sync_folder(index, folder_path: str, response) -> None:
 
     for i in range(0, total, BATCH_SIZE):
         chunk        = needs_embedding[i:i + BATCH_SIZE]
-        batch_paths  = [p          for p, _, _     in chunk]
-        hash_lookup  = {p: h       for p, h, _     in chunk}
-        mtime_lookup = {p: mtime   for p, _, mtime in chunk}
+        batch_paths  = [p        for p, _, _     in chunk]
+        hash_lookup  = {p: h     for p, h, _     in chunk}
+        mtime_lookup = {p: mtime for p, _, mtime in chunk}
 
         set_progress(current=os.path.basename(batch_paths[0]))
 
@@ -110,7 +129,7 @@ def sync_folder(index, folder_path: str, response) -> None:
         set_progress(done=done)
         print(f"[sync] {done}/{total} embedded", flush=True)
 
-    # ── Step 3: Remove deleted files ────────────────────────────────────
+    # ── Step 3: Remove files deleted from selected folder only ───────────
     all_hashes     = db.get_folder_hashes(con, folder_path)
     deleted_hashes = all_hashes - seen_hashes
 
@@ -125,7 +144,3 @@ def sync_folder(index, folder_path: str, response) -> None:
 
     con.close()
     set_progress(done=total, current="", phase="idle")
-
-# def load_folders():
-#     con = db.get_connection()
-#     return db.get_all_path(con)
