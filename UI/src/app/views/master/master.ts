@@ -75,8 +75,8 @@ export class Master implements OnInit {
     ];
 
     setTimeout(() => {
-      this.validateLicense();
-    }, 1000);
+      this.getLoadedData();
+    }, 3000);
   }
   isSidebarCollapsed = false;
 
@@ -103,18 +103,18 @@ export class Master implements OnInit {
     this.isSidebarCollapsed = !this.isSidebarCollapsed;
   }
 
-  async validateLicense() {
-    this.licenseValidateResponse = await this.electronServiceCustom.ValidateLicense();
-    this.licenseValidateResponse = JSON.parse(this.licenseValidateResponse)
-    // console.log('Parsed license validation response: ', a);
-    this.verifyLicenseResponse.status = this.licenseValidateResponse.status;
-    this.verifyLicenseResponse.message = this.licenseValidateResponse.message;
-    this.verifyLicenseResponse.code = this.licenseValidateResponse.code;
-    this.ngZone.run(() => {
-      this.isLicenseValid = !this.verifyLicenseResponse.status;
-      this.cdr.detectChanges();
-    });
-    console.log('licenseValidateResponse: ', this.licenseValidateResponse);
-    console.log('License validation response: ', this.verifyLicenseResponse);
+  async getLoadedData() {
+    this.licenseValidateResponse = await this.electronServiceCustom.getLoadedData();
+    // this.licenseValidateResponse = JSON.parse(this.licenseValidateResponse)
+    // // console.log('Parsed license validation response: ', a);
+    // this.verifyLicenseResponse.status = this.licenseValidateResponse.status;
+    // this.verifyLicenseResponse.message = this.licenseValidateResponse.message;
+    // this.verifyLicenseResponse.code = this.licenseValidateResponse.code;
+    // this.ngZone.run(() => {
+    //   this.isLicenseValid = !this.verifyLicenseResponse.status;
+    //   this.cdr.detectChanges();
+    // });
+    console.log('getLoadedData: ', this.licenseValidateResponse);
+    // console.log('License validation response: ', this.verifyLicenseResponse);
   }
 }

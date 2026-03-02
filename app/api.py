@@ -5,12 +5,10 @@ import platform
 import subprocess
 from app.config import IMAGE_EXTENSIONS_FOR_FILE
 from app.core.progress import get_progress
-from app.services import search_service, license_service
-
+from app.services import search_service, license_service,sync_service
+from app.services import folder_status_service
 
 class Api:
-    """Thin pywebview JS bridge — zero business logic."""
-
     def selectFile(self):
         return filedialog.askopenfilename(
             title="Select an image",
@@ -45,3 +43,24 @@ class Api:
         except Exception:
             pass
         return True
+    def get_folder_statuses(self):
+        return json.dumps(folder_status_service.get_folder_statuses())
+    def sync_folder(self, folder_path: str):
+        """Index all unindexed images in folder without running a search."""
+        import json
+        from app.services.sync_service import sync_folder
+        from app.core import indexer
+        from app.services.search_service import BaseResponse
+
+        response = BaseResponse()
+        index    = indexer.load_index()
+
+        sync_folder(index, folder_path, response)
+        indexer.save_index(index)
+
+        response.message = (
+            "Sync completed with errors" if response.data["errors"]
+            else "Sync completed successfully"
+        )
+        response.code = 207 if response.data["errors"] else 200
+        return json.dumps(response.__dict__, indent=2)

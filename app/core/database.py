@@ -99,3 +99,8 @@ def get_files_by_hashes(con: sqlite3.Connection, hashes: set) -> list:
         f"SELECT path, faiss_id FROM files WHERE hash IN ({placeholders})",
         list(hashes)
     ).fetchall()
+
+def get_all_path(con:sqlite3.Connection)->list:
+    return con.execute(
+        f"SELECT path from files"
+    ).fetchall()

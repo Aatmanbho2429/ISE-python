@@ -38,15 +38,12 @@ export class LoadedFolder implements OnInit {
 
   ngOnInit(): void {
     setTimeout(() => {
-      this.displayFolder();
+      //this.displayFolder();
     }, 1000);
   }
 
   async displayFolder() {
-    let result=await this.electronServiceCustom.getFolderTree();
+    let result=await this.electronServiceCustom.getLoadedData();
     console.log('Raw folder tree:', result);
-    const data = JSON.parse(result);
-    this.primeNodes = toPrimeNgTreeNodes(data.tree);
-    console.log('Summary:', data.summary);
   }
 }

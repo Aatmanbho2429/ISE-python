@@ -1,0 +1,65 @@
+<div class="folder-status">
+
+    <!-- Loading initial data -->
+    <div class="folder-status__spinner" *ngIf="loading">
+        <p-progressSpinner strokeWidth="4" />
+    </div>
+
+    <!-- Empty -->
+    <div class="folder-status__empty" *ngIf="!loading && tree.length === 0">
+        <i class="pi pi-inbox"></i>
+        <p>No indexed folders found.</p>
+    </div>
+
+    <!-- Progress bar — shows automatically when Load is running -->
+    <app-progress-bar></app-progress-bar>
+
+    <!-- Tree -->
+    <p-tree
+        *ngIf="!loading && tree.length > 0"
+        [value]="tree"
+        styleClass="folder-status__tree">
+
+        <ng-template let-node pTemplate="default">
+
+            <!-- ── Folder node ───────────────────────────────────── -->
+            <div class="tree-folder" *ngIf="isFolderNode(node)">
+
+                <span class="tree-folder__name">{{ asFolderData(node).folder }}</span>
+
+                <p-tag
+                    [severity]="folderSeverity(asFolderData(node).status)"
+                    [value]="folderLabel(asFolderData(node).status)" />
+
+                <span class="tree-folder__counts"
+                    *ngIf="asFolderData(node).status !== 'folder_missing'">
+                    {{ asFolderData(node).indexed }} / {{ asFolderData(node).total_on_disk }} indexed
+                    <span class="tree-folder__not-loaded"
+                        *ngIf="asFolderData(node).not_loaded > 0">
+                        &nbsp;· {{ asFolderData(node).not_loaded }} not loaded
+                    </span>
+                </span>
+
+                <p-button
+                    *ngIf="asFolderData(node).not_loaded > 0"
+                    label="Load"
+                    severity="contrast"
+                    size="small"
+                    [loading]="loadingFolder === asFolderData(node).folder"
+                    [disabled]="loadingFolder !== null"
+                    (click)="loadFolder(asFolderData(node).folder)" />
+
+            </div>
+
+            <!-- ── File node ─────────────────────────────────────── -->
+            <div class="tree-file" *ngIf="!isFolderNode(node)">
+                <span class="tree-file__name">{{ node.label }}</span>
+                <p-tag
+                    [severity]="fileSeverity(asFileData(node).status)"
+                    [value]="fileLabel(asFileData(node).status)" />
+            </div>
+
+        </ng-template>
+    </p-tree>
+
+</div>
