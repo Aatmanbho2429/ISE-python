@@ -45,11 +45,6 @@ export class ElectronServicesCustom {
     return typeof raw === 'string' ? JSON.parse(raw) : raw;
   }
 
-  async getLoadedData(): Promise<any> {
-    const raw = await window.pywebview.api.getLoadedData();
-    return raw;
-  }
-
   async getFolderStatuses(): Promise<FolderStatusResponse> {
     const raw = await window.pywebview.api.get_folder_statuses();
     return typeof raw === 'string' ? JSON.parse(raw) : raw;

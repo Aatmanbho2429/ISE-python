@@ -4,27 +4,32 @@ from app.core import database as db
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".tiff", ".tif", ".psd", ".psb")
 
 
-def _build_tree_recursive(folder: str, indexed_set: set) -> dict:
+def _build_tree_recursive(folder: str, indexed_set: set, disk_set: set) -> dict:
+    """
+    indexed_set — paths currently in DB
+    disk_set    — paths currently on disk (pre-scanned, passed in)
+    """
     if not os.path.exists(folder):
         return None
-
-    children = []
 
     try:
         entries = sorted(os.listdir(folder))
     except PermissionError:
         return None
 
+    children   = []
+    file_nodes = []
+
     # ── Recurse into subfolders first ───────────────────────────────────
     for entry in entries:
         full_path = os.path.join(folder, entry)
         if os.path.isdir(full_path):
-            subtree = _build_tree_recursive(full_path, indexed_set)
-            if subtree is not None:   # only include if it has images somewhere
+            subtree = _build_tree_recursive(full_path, indexed_set, disk_set)
+            if subtree is not None:
                 children.append(subtree)
 
     # ── Add image files in this folder ──────────────────────────────────
-    file_nodes = []
+    # Only show files that exist on disk RIGHT NOW
     for entry in entries:
         full_path = os.path.normpath(os.path.join(folder, entry))
         if os.path.isfile(full_path) and entry.lower().endswith(IMAGE_EXTENSIONS):
@@ -39,36 +44,39 @@ def _build_tree_recursive(folder: str, indexed_set: set) -> dict:
                 }
             })
 
-    # If no images anywhere in this subtree — skip entirely
     if not file_nodes and not children:
         return None
 
-    # Files come after subfolders in children list
     all_children = children + file_nodes
 
-    # ── Compute folder-level summary ────────────────────────────────────
-    # Count recursively: all images under this folder (files + subfolders)
-    total_on_disk  = _count_disk_images(folder)
-    indexed_here   = _count_indexed_under(folder, indexed_set)
-    not_loaded     = total_on_disk - indexed_here
+    # ── Folder summary — based on disk_set (truth) vs indexed_set ───────
+    # Files on disk under this folder
+    folder_norm    = os.path.normpath(folder) + os.sep
+    on_disk        = {p for p in disk_set    if p.startswith(folder_norm)}
+    indexed_here   = {p for p in indexed_set if p.startswith(folder_norm)}
 
-    if not os.path.exists(folder):
-        status = "folder_missing"
-    elif not_loaded > 0:
+    total_on_disk  = len(on_disk)
+    total_indexed  = len(indexed_here & on_disk)   # indexed AND on disk
+    not_loaded     = len(on_disk - indexed_here)    # on disk but NOT indexed
+
+    if not_loaded > 0:
         status = "partial"
+    elif total_on_disk == 0:
+        status = "folder_missing"
     else:
         status = "fully_loaded"
 
     summary = {
         "folder":        os.path.normpath(folder),
-        "indexed":       indexed_here,
-        "total_on_disk": total_on_disk,
-        "not_loaded":    not_loaded,
+        "indexed":       total_indexed,    # files both on disk AND in DB
+        "total_on_disk": total_on_disk,    # files actually on disk right now
+        "not_loaded":    not_loaded,       # files on disk but missing from DB
+        "stale":         len(indexed_here - on_disk),  # in DB but deleted from disk
         "status":        status
     }
 
     return {
-        "label":    os.path.normpath(folder),   # full path as label
+        "label":    os.path.normpath(folder),
         "icon":     "pi pi-folder",
         "expanded": False,
         "data":     summary,
@@ -76,53 +84,43 @@ def _build_tree_recursive(folder: str, indexed_set: set) -> dict:
     }
 
 
-def _count_disk_images(folder: str) -> int:
-    """Count all image files recursively on disk under folder."""
-    count = 0
+def _scan_disk_images(folder: str) -> set:
+    """Return set of all image paths currently on disk under folder."""
+    result = set()
     try:
         for root, _, files in os.walk(folder):
-            count += sum(1 for f in files if f.lower().endswith(IMAGE_EXTENSIONS))
+            for f in files:
+                if f.lower().endswith(IMAGE_EXTENSIONS):
+                    result.add(os.path.normpath(os.path.join(root, f)))
     except PermissionError:
         pass
-    return count
-
-
-def _count_indexed_under(folder: str, indexed_set: set) -> int:
-    """Count how many files in indexed_set are under this folder."""
-    folder = os.path.normpath(folder) + os.sep
-    return sum(1 for p in indexed_set if p.startswith(folder))
+    return result
 
 
 def get_folder_statuses() -> dict:
-    """
-    Returns:
-      flat_list — one entry per unique TOP-LEVEL folder (for table view)
-      tree      — full recursive PrimeNG TreeNode structure
-    """
     con           = db.get_connection()
     indexed_paths = [r[0] for r in con.execute("SELECT path FROM files").fetchall()]
     con.close()
 
-    # Normalize all indexed paths
     indexed_set: set = {os.path.normpath(p) for p in indexed_paths}
-
-    # Find all unique TOP-LEVEL folders (highest common roots)
-    # e.g. if DB has D:\Photos\2024\img.jpg and D:\Photos\2025\img.jpg
-    # top-level roots = { D:\Photos }
     top_level_folders = _find_top_level_roots(indexed_set)
+
+    # Pre-scan disk once per root — passed into recursive builder
+    # so we don't call os.walk multiple times per folder
+    disk_set: set = set()
+    for root_folder in top_level_folders:
+        disk_set |= _scan_disk_images(root_folder)
 
     flat_list = []
     tree      = []
 
     for root_folder in sorted(top_level_folders):
-        node = _build_tree_recursive(root_folder, indexed_set)
+        node = _build_tree_recursive(root_folder, indexed_set, disk_set)
         if node is None:
             continue
-
         tree.append(node)
         flat_list.append(node["data"])
 
-    # Sort: partial → fully_loaded → folder_missing
     order = {"partial": 0, "fully_loaded": 1, "folder_missing": 2}
     flat_list.sort(key=lambda x: (order[x["status"]], x["folder"]))
     tree.sort(key=lambda x: (order[x["data"]["status"]], x["label"]))
@@ -134,32 +132,13 @@ def get_folder_statuses() -> dict:
 
 
 def _find_top_level_roots(indexed_set: set) -> set:
-    """
-    Given a set of file paths, find the minimal set of parent folders
-    such that every file is under one of them.
-
-    Example:
-        D:\Photos\2024\a.jpg
-        D:\Photos\2025\b.jpg
-        D:\Work\assets\c.png
-    → roots: { D:\Photos, D:\Work\assets }
-
-    We walk up each path and collapse to the highest folder that
-    still exists on disk and contains images.
-    """
-    # Get all unique parent folders
     all_folders = {os.path.dirname(p) for p in indexed_set}
-
-    # Remove any folder that is a subfolder of another folder in the set
-    # i.e. keep only the roots
     roots = set()
     for folder in all_folders:
-        # Check if any other folder in the set is a parent of this one
         is_subfolder = any(
             folder != other and folder.startswith(other + os.sep)
             for other in all_folders
         )
         if not is_subfolder:
             roots.add(folder)
-
     return roots

@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { ImageSearch } from './views/image-search/image-search';
 import { Master } from './views/master/master';
-import { LoadedFolder } from './views/loaded-folder/loaded-folder';
 import { FolderStatus } from './views/folder-status/folder-status';
 
 export const routes: Routes = [

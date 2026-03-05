@@ -18,7 +18,7 @@ export class FolderStatus implements OnInit {
 
     tree:          TreeNode[]      = [];
     flat_list:     FolderSummary[] = [];
-    loading:       boolean         = false;
+    loading:       boolean         = true;
     loadingFolder: string | null   = null;
 
     constructor(
@@ -29,7 +29,7 @@ export class FolderStatus implements OnInit {
     ) {}
 
     ngOnInit() {
-        setTimeout(() => this.load(), 5000);
+        setTimeout(() => this.load(), 1000);
     }
 
     async load() {

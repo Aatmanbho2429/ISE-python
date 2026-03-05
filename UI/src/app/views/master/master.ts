@@ -73,10 +73,6 @@ export class Master implements OnInit {
         separator: true
       }
     ];
-
-    setTimeout(() => {
-      this.getLoadedData();
-    }, 3000);
   }
   isSidebarCollapsed = false;
 
@@ -101,20 +97,5 @@ export class Master implements OnInit {
 
   toggleSidebar() {
     this.isSidebarCollapsed = !this.isSidebarCollapsed;
-  }
-
-  async getLoadedData() {
-    this.licenseValidateResponse = await this.electronServiceCustom.getLoadedData();
-    // this.licenseValidateResponse = JSON.parse(this.licenseValidateResponse)
-    // // console.log('Parsed license validation response: ', a);
-    // this.verifyLicenseResponse.status = this.licenseValidateResponse.status;
-    // this.verifyLicenseResponse.message = this.licenseValidateResponse.message;
-    // this.verifyLicenseResponse.code = this.licenseValidateResponse.code;
-    // this.ngZone.run(() => {
-    //   this.isLicenseValid = !this.verifyLicenseResponse.status;
-    //   this.cdr.detectChanges();
-    // });
-    console.log('getLoadedData: ', this.licenseValidateResponse);
-    // console.log('License validation response: ', this.verifyLicenseResponse);
   }
 }
