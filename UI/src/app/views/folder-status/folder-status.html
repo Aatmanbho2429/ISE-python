@@ -1,65 +1,95 @@
 <div class="folder-status">
 
-    <!-- Loading initial data -->
+    <!-- Full-screen spinner while loading -->
     <div class="folder-status__spinner" *ngIf="loading">
         <p-progressSpinner strokeWidth="4" />
     </div>
 
-    <!-- Empty -->
-    <div class="folder-status__empty" *ngIf="!loading && tree.length === 0">
-        <i class="pi pi-inbox"></i>
-        <p>No indexed folders found.</p>
-    </div>
-
-    <!-- Progress bar — shows automatically when Load is running -->
+    <!-- Progress bar overlay — shows when Load button is clicked -->
     <app-progress-bar></app-progress-bar>
 
-    <!-- Tree -->
-    <p-tree
-        *ngIf="!loading && tree.length > 0"
-        [value]="tree"
-        styleClass="folder-status__tree">
+    <div class="folder-status-layout">
 
-        <ng-template let-node pTemplate="default">
-
-            <!-- ── Folder node ───────────────────────────────────── -->
-            <div class="tree-folder" *ngIf="isFolderNode(node)">
-
-                <span class="tree-folder__name">{{ asFolderData(node).folder }}</span>
-
-                <p-tag
-                    [severity]="folderSeverity(asFolderData(node).status)"
-                    [value]="folderLabel(asFolderData(node).status)" />
-
-                <span class="tree-folder__counts"
-                    *ngIf="asFolderData(node).status !== 'folder_missing'">
-                    {{ asFolderData(node).indexed }} / {{ asFolderData(node).total_on_disk }} indexed
-                    <span class="tree-folder__not-loaded"
-                        *ngIf="asFolderData(node).not_loaded > 0">
-                        &nbsp;· {{ asFolderData(node).not_loaded }} not loaded
-                    </span>
-                </span>
-
+        <!-- ── Load Folders panel ─────────────────────────────────────── -->
+        <div class="folder-panel" *ngIf="!loading">
+            <div class="folder-panel__header">
+                <h3 class="folder-panel__title">{{ "lblLoadFolders" | translate }}</h3>
                 <p-button
-                    *ngIf="asFolderData(node).not_loaded > 0"
-                    label="Load"
+                    label="Load Folder"
                     severity="contrast"
                     size="small"
-                    [loading]="loadingFolder === asFolderData(node).folder"
-                    [disabled]="loadingFolder !== null"
-                    (click)="loadFolder(asFolderData(node).folder)" />
+                    (click)="LoadAFolder()" />
+            </div>
+        </div>
 
+        <!-- ── Loaded Folders panel ───────────────────────────────────── -->
+        <div class="folder-panel" *ngIf="!loading">
+            <div class="folder-panel__header">
+                <h3 class="folder-panel__title">{{ "lblLoadedFolders" | translate }}</h3>
             </div>
 
-            <!-- ── File node ─────────────────────────────────────── -->
-            <div class="tree-file" *ngIf="!isFolderNode(node)">
-                <span class="tree-file__name">{{ node.label }}</span>
-                <p-tag
-                    [severity]="fileSeverity(asFileData(node).status)"
-                    [value]="fileLabel(asFileData(node).status)" />
+            <!-- Empty state -->
+            <div class="folder-status__empty" *ngIf="!loading && tree.length === 0">
+                <i class="pi pi-inbox"></i>
+                <p>{{ "lblNoIndxFolderFound" | translate }}</p>
+                <!-- <p-button
+                    label="Load a Folder"
+                    severity="contrast"
+                    size="small"
+                    (click)="LoadAFolder()" /> -->
             </div>
 
-        </ng-template>
-    </p-tree>
+            <!-- Tree -->
+            <p-tree
+                *ngIf="!loading && tree.length > 0"
+                [value]="tree"
+                styleClass="folder-status__tree">
+
+                <ng-template let-node pTemplate="default">
+
+                    <!-- Folder node -->
+                    <div class="tree-folder" *ngIf="isFolderNode(node)">
+
+                        <span class="tree-folder__name">{{ asFolderData(node).folder }}</span>
+
+                        <p-tag
+                            [severity]="folderSeverity(asFolderData(node).status)"
+                            [value]="folderLabel(asFolderData(node).status)" />
+
+                        <span class="tree-folder__counts"
+                            *ngIf="asFolderData(node).status !== 'folder_missing'">
+                            {{ asFolderData(node).indexed }} / {{ asFolderData(node).total_on_disk }}
+                            {{ "lblIndexed" | translate }}
+                            <span class="tree-folder__not-loaded"
+                                *ngIf="asFolderData(node).not_loaded > 0">
+                                &nbsp;· {{ asFolderData(node).not_loaded }} {{ "lblNotLoaded" | translate }}
+                            </span>
+                        </span>
+
+                        <p-button
+                            *ngIf="asFolderData(node).not_loaded > 0"
+                            label="Load"
+                            severity="contrast"
+                            size="small"
+                            [loading]="loadingFolder === asFolderData(node).folder"
+                            [disabled]="loadingFolder !== null"
+                            (click)="loadFolder(asFolderData(node).folder)" />
+
+                    </div>
+
+                    <!-- File node -->
+                    <div class="tree-file" *ngIf="!isFolderNode(node)">
+                        <span class="tree-file__name">{{ node.label }}</span>
+                        <p-tag
+                            [severity]="fileSeverity(asFileData(node).status)"
+                            [value]="fileLabel(asFileData(node).status)" />
+                    </div>
+
+                </ng-template>
+            </p-tree>
+
+        </div>
+
+    </div>
 
 </div>

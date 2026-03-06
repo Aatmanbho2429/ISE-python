@@ -105,8 +105,6 @@ def get_folder_statuses() -> dict:
     indexed_set: set = {os.path.normpath(p) for p in indexed_paths}
     top_level_folders = _find_top_level_roots(indexed_set)
 
-    # Pre-scan disk once per root — passed into recursive builder
-    # so we don't call os.walk multiple times per folder
     disk_set: set = set()
     for root_folder in top_level_folders:
         disk_set |= _scan_disk_images(root_folder)

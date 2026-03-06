@@ -1,32 +1,62 @@
 .folder-status {
-    width: 100%;
+    width:   100%;
+    padding: 16px;
 
     &__spinner {
-        display: flex;
+        display:         flex;
         justify-content: center;
-        padding: 40px 0;
+        padding:         40px 0;
     }
 
     &__empty {
-        display: flex;
+        display:        flex;
         flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        padding: 40px 0;
-        color: #aaa;
+        align-items:    center;
+        gap:            8px;
+        padding:        40px 0;
+        color:          #aaa;
 
         i { font-size: 2rem; }
         p { font-size: 14px; margin: 0; }
     }
 }
 
-// Override PrimeNG tree to remove default padding/border
+// ── Two-panel layout ────────────────────────────────────────────────────────
+.folder-status-layout {
+    display:   flex;
+    flex-direction: column;
+    gap:       24px;
+}
+
+// ── Panel shared styles ──────────────────────────────────────────────────────
+.folder-panel {
+    background:    #ffffff;
+    border:        1px solid #e5e7eb;
+    border-radius: 10px;
+    padding:       16px 20px;
+
+    &__header {
+        display:         flex;
+        align-items:     center;
+        justify-content: space-between;
+        margin-bottom:   14px;
+    }
+
+    &__title {
+        font-size:   15px;
+        font-weight: 700;
+        color:       #1a1a1a;
+        margin:      0;
+    }
+}
+
+// ── PrimeNG tree overrides ───────────────────────────────────────────────────
 ::ng-deep .folder-status__tree {
-    border: none !important;
+    border:     none !important;
     background: transparent !important;
 
     .p-tree-node-content {
-        padding: 4px 6px !important;
+        padding:       4px 6px !important;
         border-radius: 6px;
 
         &:hover {
@@ -34,7 +64,6 @@
         }
     }
 
-    // Make the custom content fill the row
     .p-tree-node-label {
         width: 100%;
     }
@@ -47,12 +76,6 @@
     gap:         10px;
     width:       100%;
     padding:     4px 0;
-
-    &__icon {
-        font-size:   15px;
-        color:       #f59e0b;
-        flex-shrink: 0;
-    }
 
     &__name {
         font-weight:   600;
@@ -84,12 +107,6 @@
     gap:         8px;
     width:       100%;
     padding:     2px 0;
-
-    &__icon {
-        font-size:   13px;
-        color:       #94a3b8;
-        flex-shrink: 0;
-    }
 
     &__name {
         font-size:     13px;

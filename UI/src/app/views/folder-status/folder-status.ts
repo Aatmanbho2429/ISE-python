@@ -5,10 +5,11 @@ import { FileNodeData, FileStatusType, FolderStatusResponse, FolderStatusType, F
 import { ElectronServicesCustom } from '../../service/electron-services-custom';
 import { SystemService } from '../../service/system-service';
 import { ProgressBarComponent } from '../progress-bar/progress-bar';
+import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
     selector: 'app-folder-status',
-    imports: [PrimengComponentsModule, CommonModule,ProgressBarComponent],
+    imports: [PrimengComponentsModule, CommonModule, ProgressBarComponent, TranslateModule],
     templateUrl: './folder-status.html',
     styleUrl: './folder-status.scss',
 })
@@ -16,17 +17,17 @@ export class FolderStatus implements OnInit {
 
     @ViewChild(ProgressBarComponent) progressBar!: ProgressBarComponent;
 
-    tree:          TreeNode[]      = [];
-    flat_list:     FolderSummary[] = [];
-    loading:       boolean         = true;
-    loadingFolder: string | null   = null;
+    tree: TreeNode[] = [];
+    flat_list: FolderSummary[] = [];
+    loading: boolean = true;
+    loadingFolder: string | null = null;
 
     constructor(
         private electronService: ElectronServicesCustom,
         private cdr: ChangeDetectorRef,
         private ngZone: NgZone,
         private systemService: SystemService
-    ) {}
+    ) { }
 
     ngOnInit() {
         setTimeout(() => this.load(), 1000);
@@ -41,9 +42,9 @@ export class FolderStatus implements OnInit {
             const data: FolderStatusResponse = await this.electronService.getFolderStatuses();
             console.log(data)
             this.ngZone.run(() => {
-                this.tree      = data.tree;
+                this.tree = data.tree;
                 this.flat_list = data.flat_list;
-                this.loading   = false;
+                this.loading = false;
                 this.cdr.detectChanges();
             });
         } catch (e) {
@@ -55,19 +56,26 @@ export class FolderStatus implements OnInit {
         }
     }
 
+    async LoadAFolder() {
+        const result = await this.electronService.OpenFolderDialog();
+        console.log('Selected folder:', result);
+        if (result) {
+            await this.loadFolder(result);
+
+        }
+    }
+
     async loadFolder(folderPath: string) {
         this.ngZone.run(() => {
             this.loadingFolder = folderPath;
             this.cdr.detectChanges();
         });
 
-        // ── Start progress bar (same as search component) ────────────────
         this.progressBar?.startPolling();
-        // ─────────────────────────────────────────────────────────────────
 
         try {
             const response = await this.electronService.syncFolder(folderPath);
-            const parsed   = typeof response === 'string' ? JSON.parse(response) : response;
+            const parsed = typeof response === 'string' ? JSON.parse(response) : response;
 
             if (parsed.status) {
                 this.systemService.showSuccess('Folder loaded successfully');
@@ -77,14 +85,12 @@ export class FolderStatus implements OnInit {
         } catch (e: any) {
             this.systemService.showError(e?.message || 'Load failed');
         } finally {
-            // ── Stop progress bar ─────────────────────────────────────────
             setTimeout(() => this.progressBar?.stopPolling(), 1000);
-            // ─────────────────────────────────────────────────────────────
             this.ngZone.run(() => {
                 this.loadingFolder = null;
                 this.cdr.detectChanges();
             });
-            await this.load();  // refresh tree after indexing
+            await this.load();
         }
     }
 
@@ -102,16 +108,16 @@ export class FolderStatus implements OnInit {
 
     folderSeverity(status: FolderStatusType): 'success' | 'warn' | 'danger' {
         switch (status) {
-            case 'fully_loaded':   return 'success';
-            case 'partial':        return 'warn';
+            case 'fully_loaded': return 'success';
+            case 'partial': return 'warn';
             case 'folder_missing': return 'danger';
         }
     }
 
     folderLabel(status: FolderStatusType): string {
         switch (status) {
-            case 'fully_loaded':   return 'Fully Loaded';
-            case 'partial':        return 'Partial';
+            case 'fully_loaded': return 'Fully Loaded';
+            case 'partial': return 'Partial';
             case 'folder_missing': return 'Folder Missing';
         }
     }
