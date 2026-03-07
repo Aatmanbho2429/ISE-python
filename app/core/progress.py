@@ -24,6 +24,9 @@ def set_progress(done=None, total=None, current=None, phase=None, errors=None):
             _state["percent"] = round(_state["done"] / _state["total"] * 100, 1)
         _state["active"] = _state["phase"] != "idle"
 
+def increment_errors():
+    with _lock:
+        _state["errors"] += 1
 
 def get_progress() -> dict:
     with _lock:

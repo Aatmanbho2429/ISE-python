@@ -45,6 +45,8 @@ def search(query_image: str, folder_path: str, top_k: int) -> str:
         scores, indices = indexer.search_index(index, query, top_k)
 
         for rank, (idx, score) in enumerate(zip(indices, scores)):
+            if idx == -1:
+                continue
             if idx in id_map:
                 response.data["results"].append({
                     "rank":       rank + 1,
@@ -52,7 +54,7 @@ def search(query_image: str, folder_path: str, top_k: int) -> str:
                     "similarity": float(score)
                 })
     except Exception as e:
-        response.status = False
+        response.status = True
         response.data["errors"].append({"file": query_image, "reason": str(e)})
     finally:
         con.close()

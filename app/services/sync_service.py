@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from app.config import BATCH_SIZE, NUM_WORKERS
 from app.core import database as db
 from app.core import indexer
-from app.core.progress import set_progress, get_progress
+from app.core.progress import set_progress, get_progress,increment_errors
 from app.core.embedder import Embedder
 from app.utils.file_utils import fast_hash, scan_images
 from app.utils.image_loader import preprocess_batch_parallel
@@ -49,7 +49,7 @@ def sync_folder(index, folder_path: str, response) -> None:
         set_progress(done=hashed_done, current=os.path.basename(path))
 
         if err:
-            set_progress(errors=get_progress()["errors"] + 1)
+            increment_errors()
             response.status = False
             response.data["errors"].append({"file": path, "reason": err})
             continue
@@ -112,7 +112,7 @@ def sync_folder(index, folder_path: str, response) -> None:
         batch, valid_paths, failed = preprocess_batch_parallel(batch_paths)
 
         for f in failed:
-            set_progress(errors=get_progress()["errors"] + 1)
+            increment_errors()
             response.status = False
             response.data["errors"].append(f)
 

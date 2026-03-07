@@ -111,7 +111,6 @@ export class ImageSearch implements OnInit {
         this.folderPath,
         this.number_of_results
       );
-
       const parsed = typeof response === 'string' ? JSON.parse(response) : response;
 
       this.ngZone.run(() => {
