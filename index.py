@@ -1,196 +1,322 @@
 """
-Benchmark: decompress PSB → save temp JPEG → load temp JPEG → delete temp JPEG
-Tests the full pipeline to see total time per file.
+benchmark_loader.py
+────────────────────
+Standalone benchmark — tests OLD vs NEW image loading for PSB and TIFF files.
+Drop this file in your project root (same folder as main.py) and run:
 
-Run: python benchmark_temp.py
+    python benchmark_loader.py "E:/Projects/Image Db/PSB FILE/PSB FILE/GLOSSY"
+
+It will:
+  1. Find up to MAX_FILES PSB/TIFF files in the folder you pass
+  2. Test OLD loading method (psd_tools.topil / plain PIL)
+  3. Test NEW loading method (raw thumbnail / draft mode)
+  4. Print a full timing report with per-file breakdown
+  5. Show projected time for 5000 files
+
+No changes to your actual app — just read-only testing.
 """
-import time
+
 import os
 import sys
-import tempfile
-import struct
 import io
-import shutil
+import struct
+import time
+import statistics
+from pathlib import Path
+
+# ── Make sure app imports work when run from project root ─────────────
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from PIL import Image
 
-TEST_FOLDER = r"D:\\ImageDb\\PSB FILE\\GLOSSY"
-MAX_FILES   = 10
-PREVIEW_SIZE = 512
+try:
+    from psd_tools import PSDImage
+    HAS_PSD_TOOLS = True
+except ImportError:
+    HAS_PSD_TOOLS = False
+    print("[warn] psd_tools not installed — PSB old-method test will be skipped")
+
+# ── Config ─────────────────────────────────────────────────────────────
+MAX_FILES   = 20       # files to sample per type (keep small for quick run)
+EXTENSIONS  = (".psb", ".psd", ".tif", ".tiff")
+
+SEPARATOR   = "─" * 70
 
 
-def _extract_psb_thumbnail(path: str):
-    """Raw byte extraction — fast path if thumbnail exists."""
+# ══════════════════════════════════════════════════════════════════════
+# OLD METHODS (copy of your original code)
+# ══════════════════════════════════════════════════════════════════════
+
+def old_load_psb(path: str) -> Image.Image:
+    psd = PSDImage.open(path)
+    img = psd.topil()
+    if img is None:
+        img = psd.composite()
+    if img is None:
+        raise RuntimeError(f"PSD/PSB load failed: {path}")
+    return img.convert("RGB")
+
+
+def old_load_tiff(path: str) -> Image.Image:
+    img = Image.open(path)
+    try:
+        img.seek(1)
+        if max(img.size) <= 512:
+            return img.convert("RGB")
+    except Exception:
+        pass
+    img.seek(0)
+    return img.convert("RGB")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# NEW METHODS (from image_loader.py)
+# ══════════════════════════════════════════════════════════════════════
+
+def _read_psb_thumbnail(path: str):
     try:
         with open(path, "rb") as f:
-            if f.read(4) != b"8BPS":
+            sig = f.read(4)
+            if sig != b"8BPS":
                 return None
-            f.read(2); f.read(6); f.read(2); f.read(4); f.read(4); f.read(2); f.read(2)
-            f.seek(struct.unpack(">I", f.read(4))[0], 1)
-            end = f.tell() + struct.unpack(">I", f.read(4))[0]
-            while f.tell() < end:
-                if f.read(4) != b"8BIM": break
-                rid      = struct.unpack(">H", f.read(2))[0]
+            f.read(2)   # version
+            f.read(6)   # reserved
+            f.read(2)   # channels
+            f.read(4)   # height
+            f.read(4)   # width
+            f.read(4)   # depth + color mode
+
+            color_mode_len = struct.unpack(">I", f.read(4))[0]
+            f.read(color_mode_len)
+
+            resources_len = struct.unpack(">I", f.read(4))[0]
+            resources_end = f.tell() + resources_len
+
+            while f.tell() < resources_end:
+                sig2 = f.read(4)
+                if sig2 != b"8BIM":
+                    break
+                res_id   = struct.unpack(">H", f.read(2))[0]
                 name_len = struct.unpack("B", f.read(1))[0]
-                pad      = name_len if name_len > 0 else 1
-                f.read(pad + (pad % 2))
-                rlen   = struct.unpack(">I", f.read(4))[0]
-                rstart = f.tell()
-                if rid in (0x0409, 0x0408):
-                    fmt = struct.unpack(">I", f.read(4))[0]
-                    f.read(16)
-                    jpeg_size = struct.unpack(">I", f.read(4))[0]
-                    f.read(4)
-                    if fmt == 1:
-                        data = f.read(jpeg_size)
-                        return Image.open(io.BytesIO(data)).convert("RGB")
-                f.seek(rstart + rlen + (rlen % 2))
+                pad      = 1 if (name_len + 1) % 2 != 0 else 0
+                f.read(name_len + pad)
+                data_len = struct.unpack(">I", f.read(4))[0]
+                data_pos = f.tell()
+
+                if res_id in (1033, 1036):
+                    f.read(4)   # fmt
+                    f.read(24)  # rest of thumbnail header
+                    jpeg_len = data_len - 28
+                    if jpeg_len > 0:
+                        jpeg_bytes = f.read(jpeg_len)
+                        img = Image.open(io.BytesIO(jpeg_bytes))
+                        return img.convert("RGB")
+
+                f.seek(data_pos + data_len + (data_len % 2))
     except Exception:
         pass
     return None
 
 
-def process_one_psb(path: str) -> dict:
-    """
-    Full pipeline for one PSB:
-    1. Try raw byte extract (fast)
-    2. If not found — decompress with psd_tools (slow, but only once)
-    3. Save to temp JPEG
-    4. Load temp JPEG (this is what gets embedded)
-    5. Delete temp JPEG
-    Returns timing breakdown.
-    """
+def new_load_psb(path: str) -> Image.Image:
+    img = _read_psb_thumbnail(path)
+    if img is not None:
+        return img
+    # fallback
+    if HAS_PSD_TOOLS:
+        return old_load_psb(path)
+    raise RuntimeError("No thumbnail and psd_tools not available")
+
+
+def new_load_tiff(path: str) -> Image.Image:
+    img = Image.open(path)
+    try:
+        img.seek(1)
+        if max(img.size) <= 1024:
+            return img.convert("RGB")
+    except Exception:
+        pass
+    img.seek(0)
+    try:
+        img.draft("RGB", (512, 512))
+    except Exception:
+        pass
+    return img.convert("RGB")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Benchmark runner
+# ══════════════════════════════════════════════════════════════════════
+
+def benchmark_file(path: str, old_fn, new_fn, label: str) -> dict:
     result = {
-        "file":         os.path.basename(path),
+        "path":         path,
+        "filename":     os.path.basename(path),
         "size_mb":      os.path.getsize(path) / 1024 / 1024,
-        "raw_ms":       0,
-        "decompress_ms":0,
-        "save_ms":      0,
-        "load_ms":      0,
-        "delete_ms":    0,
-        "total_ms":     0,
-        "method":       "",
-        "error":        None,
-        "img_size":     None,
+        "label":        label,
+        "old_ms":       None,
+        "new_ms":       None,
+        "old_size":     None,
+        "new_size":     None,
+        "thumbnail_hit": False,
+        "old_error":    None,
+        "new_error":    None,
     }
 
-    temp_path = None
-    t_total   = time.perf_counter()
-
+    # ── OLD ──────────────────────────────────────────────────────────
     try:
-        # ── Step 1: Try raw byte extraction ─────────────────────────────
-        t = time.perf_counter()
-        img = _extract_psb_thumbnail(path)
-        result["raw_ms"] = (time.perf_counter() - t) * 1000
-
-        if img is not None:
-            result["method"] = "raw_bytes"
-        else:
-            # ── Step 2: Full decompress ──────────────────────────────────
-            result["method"] = "psd_tools"
-            t = time.perf_counter()
-            from psd_tools import PSDImage
-            psd = PSDImage.open(path)
-            img = psd.topil()
-            if img is None:
-                img = psd.composite()
-            if img is None:
-                raise RuntimeError("No image data found")
-            img = img.convert("RGB")
-            result["decompress_ms"] = (time.perf_counter() - t) * 1000
-
-        # ── Step 3: Save to temp JPEG ────────────────────────────────────
-        t = time.perf_counter()
-        tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
-        temp_path = tmp.name
-        tmp.close()
-
-        thumb = img.copy()
-        thumb.thumbnail((PREVIEW_SIZE, PREVIEW_SIZE), Image.LANCZOS)
-        thumb.save(temp_path, "JPEG", quality=85, optimize=True)
-        result["save_ms"] = (time.perf_counter() - t) * 1000
-
-        temp_size_kb = os.path.getsize(temp_path) / 1024
-
-        # ── Step 4: Load temp JPEG (simulates what embedder will read) ───
-        t = time.perf_counter()
-        loaded = Image.open(temp_path).convert("RGB")
-        result["img_size"] = loaded.size
-        result["load_ms"]  = (time.perf_counter() - t) * 1000
-
-        # ── Step 5: Delete temp JPEG ─────────────────────────────────────
-        t = time.perf_counter()
-        os.remove(temp_path)
-        temp_path = None
-        result["delete_ms"] = (time.perf_counter() - t) * 1000
-
+        t0  = time.perf_counter()
+        img = old_fn(path)
+        result["old_ms"]   = (time.perf_counter() - t0) * 1000
+        result["old_size"] = img.size
     except Exception as e:
-        result["error"] = str(e)
-    finally:
-        # Safety cleanup
-        if temp_path and os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception:
-                pass
+        result["old_error"] = str(e)
 
-    result["total_ms"] = (time.perf_counter() - t_total) * 1000
+    # ── NEW ──────────────────────────────────────────────────────────
+    try:
+        t0  = time.perf_counter()
+        img = new_fn(path)
+        result["new_ms"]   = (time.perf_counter() - t0) * 1000
+        result["new_size"] = img.size
+        # Detect if thumbnail was used (small image = thumbnail, large = full decode)
+        if label in ("PSB", "PSD") and img.size[0] <= 1024:
+            result["thumbnail_hit"] = True
+    except Exception as e:
+        result["new_error"] = str(e)
+
     return result
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+def find_files(folder: str, exts: tuple, limit: int) -> list:
+    found = []
+    for root, dirs, files in os.walk(folder):
+        dirs[:] = [d for d in dirs if d.lower() != "__macosx"]
+        for f in files:
+            if f.lower().endswith(exts):
+                found.append(os.path.join(root, f))
+                if len(found) >= limit:
+                    return found
+    return found
 
-files = []
-for root, _, fs in os.walk(TEST_FOLDER):
-    for f in fs:
-        if f.lower().endswith((".psb", ".psd")):
-            files.append(os.path.join(root, f))
-        if len(files) >= MAX_FILES:
-            break
-    if len(files) >= MAX_FILES:
-        break
 
-if not files:
-    print(f"No PSB files found in {TEST_FOLDER}")
-    sys.exit(1)
+def print_table(results: list, title: str):
+    print(f"\n{SEPARATOR}")
+    print(f"  {title}")
+    print(SEPARATOR)
+    print(f"  {'File':<35} {'Size':>7}  {'OLD ms':>8}  {'NEW ms':>8}  {'Speedup':>8}  {'Thumb?'}")
+    print(f"  {'─'*35} {'─'*7}  {'─'*8}  {'─'*8}  {'─'*8}  {'─'*6}")
 
-print(f"Testing {len(files)} files from {TEST_FOLDER}")
-print(f"Pipeline: decompress → temp JPEG → load → delete\n")
-print(f"{'File':<45} {'MB':>6}  {'method':<10} {'decomp':>8} {'save':>6} {'load':>6} {'del':>5} {'TOTAL':>8}")
-print("=" * 105)
+    speedups = []
+    for r in results:
+        name    = r["filename"][:34]
+        size    = f"{r['size_mb']:.1f} MB"
+        old_ms  = f"{r['old_ms']:.1f}" if r["old_ms"] is not None else "ERROR"
+        new_ms  = f"{r['new_ms']:.1f}" if r["new_ms"] is not None else "ERROR"
+        thumb   = "✅" if r["thumbnail_hit"] else "❌"
 
-total_time = 0
-success    = 0
+        if r["old_ms"] and r["new_ms"] and r["new_ms"] > 0:
+            speedup = r["old_ms"] / r["new_ms"]
+            speedups.append(speedup)
+            sp_str = f"{speedup:.1f}x"
+        else:
+            sp_str = "—"
 
-for path in files:
-    r = process_one_psb(path)
+        if r["old_error"]:
+            old_ms = f"ERR: {r['old_error'][:20]}"
+        if r["new_error"]:
+            new_ms = f"ERR: {r['new_error'][:20]}"
 
-    if r["error"]:
-        print(f"❌ {r['file']:<43} {r['size_mb']:>6.1f}  ERROR: {r['error']}")
-        continue
+        print(f"  {name:<35} {size:>7}  {old_ms:>8}  {new_ms:>8}  {sp_str:>8}  {thumb}")
 
-    decomp = f"{r['decompress_ms']:.0f}ms" if r["method"] == "psd_tools" else f"{r['raw_ms']:.0f}ms"
-    print(
-        f"✅ {r['file']:<43} {r['size_mb']:>6.1f}"
-        f"  {r['method']:<10}"
-        f"  {decomp:>8}"
-        f"  {r['save_ms']:>4.0f}ms"
-        f"  {r['load_ms']:>4.0f}ms"
-        f"  {r['delete_ms']:>3.0f}ms"
-        f"  {r['total_ms']:>6.0f}ms"
-    )
-    total_time += r["total_ms"]
-    success    += 1
+    print(SEPARATOR)
+    if speedups:
+        avg = statistics.mean(speedups)
+        med = statistics.median(speedups)
+        print(f"  Average speedup: {avg:.1f}x    Median: {med:.1f}x")
 
-print("=" * 105)
+        old_times = [r["old_ms"] for r in results if r["old_ms"]]
+        new_times = [r["new_ms"] for r in results if r["new_ms"]]
+        if old_times and new_times:
+            avg_old = statistics.mean(old_times)
+            avg_new = statistics.mean(new_times)
+            print(f"  Avg OLD: {avg_old:.1f} ms/file    Avg NEW: {avg_new:.1f} ms/file")
 
-if success > 0:
-    avg = total_time / success
-    print(f"\nAverage per file:      {avg:.0f}ms  ({avg/1000:.1f}s)")
-    print(f"\n10k files estimates:")
-    for workers in [2, 4, 6, 8]:
-        mins = 10000 * avg / workers / 1000 / 60
-        print(f"  {workers} workers → {mins:.0f} min")
+            for n in [100, 500, 1000, 5000]:
+                old_proj = avg_old * n / 1000
+                new_proj = avg_new * n / 1000
+                print(f"  Projected {n:>5} files → OLD: {old_proj:>6.1f}s ({old_proj/60:.1f}m)  "
+                      f"NEW: {new_proj:>6.1f}s ({new_proj/60:.1f}m)")
 
-print(f"\nNOTE: 'decomp' is the slow step — happens once per file only.")
-print(f"      After embedding, the temp file is deleted immediately.")
-print(f"      No permanent files are created on disk.")
+    thumb_hits = sum(1 for r in results if r["thumbnail_hit"])
+    print(f"\n  Thumbnail extracted: {thumb_hits}/{len(results)} files")
+    if thumb_hits < len(results):
+        print(f"  ⚠️  {len(results)-thumb_hits} files had no embedded thumbnail → fell back to full decode")
+        print(f"     These files will be slower. Save them from Photoshop with 'Maximize Compatibility' ON.")
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Main
+# ══════════════════════════════════════════════════════════════════════
+
+def main():
+    folder = sys.argv[1] if len(sys.argv) > 1 else "."
+    folder = os.path.abspath(folder)
+
+    if not os.path.isdir(folder):
+        print(f"❌ Not a directory: {folder}")
+        sys.exit(1)
+
+    print(f"\n{'═'*70}")
+    print(f"  Visara Image Loader Benchmark")
+    print(f"  Folder : {folder}")
+    print(f"  Samples: up to {MAX_FILES} files per type")
+    print(f"{'═'*70}")
+
+    # ── PSB / PSD ─────────────────────────────────────────────────────
+    psb_files = find_files(folder, (".psb", ".psd"), MAX_FILES)
+    if psb_files and HAS_PSD_TOOLS:
+        print(f"\n⏳ Testing {len(psb_files)} PSB/PSD files (OLD = psd_tools.topil, NEW = raw thumbnail)...")
+        psb_results = []
+        for i, path in enumerate(psb_files, 1):
+            ext = os.path.splitext(path)[1].upper().lstrip(".")
+            print(f"   [{i:>2}/{len(psb_files)}] {os.path.basename(path)}", end="", flush=True)
+            r = benchmark_file(path, old_load_psb, new_load_psb, ext)
+            psb_results.append(r)
+            thumb = "✅ thumb" if r["thumbnail_hit"] else "❌ full"
+            old_s = f"{r['old_ms']:.0f}ms" if r["old_ms"] else "ERR"
+            new_s = f"{r['new_ms']:.0f}ms" if r["new_ms"] else "ERR"
+            print(f"  {old_s} → {new_s}  {thumb}")
+        print_table(psb_results, "PSB / PSD Results")
+    elif not psb_files:
+        print(f"\n⚠️  No PSB/PSD files found in: {folder}")
+    elif not HAS_PSD_TOOLS:
+        print(f"\n⚠️  psd_tools not installed — skipping PSB/PSD old-method comparison")
+
+    # ── TIFF ──────────────────────────────────────────────────────────
+    tiff_files = find_files(folder, (".tif", ".tiff"), MAX_FILES)
+    if tiff_files:
+        print(f"\n⏳ Testing {len(tiff_files)} TIFF files (OLD = plain PIL, NEW = draft mode)...")
+        tiff_results = []
+        for i, path in enumerate(tiff_files, 1):
+            print(f"   [{i:>2}/{len(tiff_files)}] {os.path.basename(path)}", end="", flush=True)
+            r = benchmark_file(path, old_load_tiff, new_load_tiff, "TIFF")
+            tiff_results.append(r)
+            old_s = f"{r['old_ms']:.0f}ms" if r["old_ms"] else "ERR"
+            new_s = f"{r['new_ms']:.0f}ms" if r["new_ms"] else "ERR"
+            print(f"  {old_s} → {new_s}")
+        print_table(tiff_results, "TIFF Results")
+    else:
+        print(f"\n⚠️  No TIFF files found in: {folder}")
+
+    # ── Summary ───────────────────────────────────────────────────────
+    print(f"\n{'═'*70}")
+    print("  HOW TO READ THIS:")
+    print("  • 'Thumb? ✅' = fast path worked (5–15ms)")
+    print("  • 'Thumb? ❌' = fell back to full decode (slow)")
+    print("  • If many ❌: open files in Photoshop → Save As → tick 'Maximize Compatibility'")
+    print("  • TIFF speedup depends on file size — bigger files = bigger speedup")
+    print(f"{'═'*70}\n")
+
+
+if __name__ == "__main__":
+    main()

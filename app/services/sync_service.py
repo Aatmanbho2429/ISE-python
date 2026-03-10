@@ -114,7 +114,7 @@ def sync_folder(index, folder_path: str, response) -> None:
 
         done += len(chunk)
         set_progress(done=done)
-        print(f"[sync] {done}/{total} embedded", flush=True)
+        # print(f"[sync] {done}/{total} embedded", flush=True)
 
     # ── Step 3: Remove deleted ────────────────────────────────────────────
     all_hashes     = db.get_folder_hashes(con, folder_path)

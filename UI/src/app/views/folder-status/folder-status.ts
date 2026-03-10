@@ -40,7 +40,7 @@ export class FolderStatus implements OnInit {
         });
         try {
             const data: FolderStatusResponse = await this.electronService.getFolderStatuses();
-            console.log(data)
+            // console.log(data)
             this.ngZone.run(() => {
                 this.tree = data.tree;
                 this.flat_list = data.flat_list;
@@ -58,7 +58,7 @@ export class FolderStatus implements OnInit {
 
     async LoadAFolder() {
         const result = await this.electronService.OpenFolderDialog();
-        console.log('Selected folder:', result);
+        // console.log('Selected folder:', result);
         if (result) {
             await this.loadFolder(result);
 

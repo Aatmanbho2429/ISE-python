@@ -84,7 +84,7 @@ class Api:
             b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
             return f"data:image/jpeg;base64,{b64}"
         except Exception as e:
-            print(f"[thumbnail] failed for {path}: {e}", flush=True)
+            # print(f"[thumbnail] failed for {path}: {e}", flush=True)
             return "error"
         
     def getDeviceId(self):

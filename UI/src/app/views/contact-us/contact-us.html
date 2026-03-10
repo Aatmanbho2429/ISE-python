@@ -1,0 +1,13 @@
+<div class="contact-page">
+  <div class="contact-card">
+    <div class="contact-card__icon">
+      <i class="pi pi-headphones"></i>
+    </div>
+    <h2 class="contact-card__title">{{ "lblSupport" | translate }}</h2>
+    <p class="contact-card__subtitle">{{ "lblNeedHelp" | translate }}</p>
+    <div class="contact-card__item">
+      <i class="pi pi-envelope"></i>
+      <a [href]="'mailto:' + email" class="contact-card__email">{{ email }}</a>
+    </div>
+  </div>
+</div>

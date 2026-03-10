@@ -170,11 +170,11 @@ export abstract class CoreDataService {
                 // Over Here Call Login Page
             } else {
                 // this.insightService.logException(error);
-                console.log(error);
+                // console.log(error);
             }
         } else {
             // this.insightService.logException(error);
-            console.log(error);
+            // console.log(error);
         }
         return throwError('Something wrong happened');
     }

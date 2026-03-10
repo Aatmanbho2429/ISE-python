@@ -45,8 +45,8 @@ class Embedder:
         self._lock     = threading.Lock()
         self._mean     = np.array(CLIP_MEAN, dtype=np.float32)
         self._std      = np.array(CLIP_STD,  dtype=np.float32)
-        print(f"[embedder] Model loaded: {MODEL_PATH}")
-        print(f"[embedder] Input: {self._in_name}  Output: {self._out_name}")
+        # print(f"[embedder] Model loaded: {MODEL_PATH}")
+        # print(f"[embedder] Input: {self._in_name}  Output: {self._out_name}")
 
     def embed_batch(self, batch: np.ndarray) -> np.ndarray:
         """batch: (N,3,224,224) → returns (N, EMB_DIM) L2-normalized"""

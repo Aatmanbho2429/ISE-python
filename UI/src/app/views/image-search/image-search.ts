@@ -111,7 +111,7 @@ export class ImageSearch implements OnInit {
         this.folderPath,
         this.number_of_results
       );
-      console.log("Raw response from Search:", response);
+      // console.log("Raw response from Search:", response);
       const parsed = typeof response === 'string' ? JSON.parse(response) : response;
 
       this.ngZone.run(async () => {
@@ -119,7 +119,7 @@ export class ImageSearch implements OnInit {
           this.systemService.showError(parsed.message || "Search failed");
           return;
         }
-        console.log("parsed variable:", parsed);
+        // console.log("parsed variable:", parsed);
         const resultsArray = parsed.data?.results || [];
 
         if (resultsArray.length > 0) {

@@ -71,6 +71,7 @@
   "lblLoadFolders": "Index a Folder",
   "lblLoadedFolders": "Indexed Folders",
   "lblLoadedFoldersSidebar": "Indexed Folders",
+  "lblActivityLog": "Activity Log",
   "lblNoIndxFolderFound": "No folders indexed yet. Load a folder to get started.",
   "lblIndexed": "indexed",
   "lblNotLoaded": "pending",
@@ -78,6 +79,9 @@
 
   "lblSearchEngine": "Image Search",
   "lblUserGuide": "User Guide",
+  "lblContactUs": "Contact Us",
+  "lblSupport": "Support",
+  "lblNeedHelp": "Need help? Reach out to us and we'll get back to you.",
 
   "lblInvalidLicenseHeading": "License Verification Failed",
   "lblInvalidLicenseMessage": "Contact aatmanbhoraniya12@gmail.com for a valid license."

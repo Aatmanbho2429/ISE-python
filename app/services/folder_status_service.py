@@ -21,7 +21,15 @@ def _build_tree_recursive(folder: str, indexed_set: set, disk_set: set) -> dict:
     file_nodes = []
 
     # ── Recurse into subfolders first ───────────────────────────────────
+    # for entry in entries:
+    #     full_path = os.path.join(folder, entry)
+    #     if os.path.isdir(full_path):
+    #         subtree = _build_tree_recursive(full_path, indexed_set, disk_set)
+    #         if subtree is not None:
+    #             children.append(subtree)
     for entry in entries:
+        if entry.lower() in _SKIP_FOLDERS:
+            continue
         full_path = os.path.join(folder, entry)
         if os.path.isdir(full_path):
             subtree = _build_tree_recursive(full_path, indexed_set, disk_set)
@@ -83,12 +91,26 @@ def _build_tree_recursive(folder: str, indexed_set: set, disk_set: set) -> dict:
         "children": all_children
     }
 
+_SKIP_FOLDERS = {"__macosx"}
+
+# def _scan_disk_images(folder: str) -> set:
+#     """Return set of all image paths currently on disk under folder."""
+#     result = set()
+#     try:
+#         for root, _, files in os.walk(folder):
+#             for f in files:
+#                 if f.lower().endswith(IMAGE_EXTENSIONS):
+#                     result.add(os.path.normpath(os.path.join(root, f)))
+#     except PermissionError:
+#         pass
+#     return result
 
 def _scan_disk_images(folder: str) -> set:
     """Return set of all image paths currently on disk under folder."""
     result = set()
     try:
-        for root, _, files in os.walk(folder):
+        for root, dirs, files in os.walk(folder):
+            dirs[:] = [d for d in dirs if d.lower() not in _SKIP_FOLDERS]
             for f in files:
                 if f.lower().endswith(IMAGE_EXTENSIONS):
                     result.add(os.path.normpath(os.path.join(root, f)))

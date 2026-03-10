@@ -3,6 +3,7 @@ import { ImageSearch } from './views/image-search/image-search';
 import { Master } from './views/master/master';
 import { FolderStatus } from './views/folder-status/folder-status';
 import { ActivityLog } from './views/activity-log/activity-log';
+import { ContactUs } from './views/contact-us/contact-us';
 
 export const routes: Routes = [
     {
@@ -18,6 +19,11 @@ export const routes: Routes = [
             },
             {
                 path: 'activity-log', component: ActivityLog
+
+            }
+            ,
+            {
+                path: 'contact-us', component: ContactUs
 
             }
         ]
