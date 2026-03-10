@@ -60,6 +60,14 @@ export class ElectronServicesCustom {
     return result;
     return (window as any).pywebview.api.get_thumbnail(path);
   }
+
+  getDeviceId(): Promise<string> {
+    return (window as any).pywebview.api.getDeviceId();
+  }
+
+  validateLicense(): Promise<string> {
+    return (window as any).pywebview.api.validateLicense();
+  }
 }
 
 declare global {

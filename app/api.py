@@ -85,3 +85,7 @@ class Api:
         except Exception as e:
             print(f"[thumbnail] failed for {path}: {e}", flush=True)
             return "error"
+        
+    def getDeviceId(self):
+        from app.services.license_service import get_device_id
+        return get_device_id()

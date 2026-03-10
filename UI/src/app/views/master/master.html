@@ -1,17 +1,9 @@
-<!-- <section class="sidebar">
-    i am sidebar
-</section>
-<section class="main-content">
-    <router-outlet></router-outlet>
-</section> -->
-
 <div class="app-shell" [class.sidebar-collapsed]="isSidebarCollapsed">
 
     <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
         <div class="sidebar__logo">
             <span>{{ "lblISESearchEngine" | translate }}</span>
         </div>
-
         <nav class="sidebar-nav">
             <ul>
                 <li routerLinkActive="active">
@@ -26,7 +18,6 @@
                         <span class="label">{{ "lblLoadedFoldersSidebar" | translate }}</span>
                     </a>
                 </li>
-
                 <li routerLinkActive="active">
                     <a routerLink="/settings">
                         <i class="pi pi-info-circle"></i>
@@ -38,9 +29,7 @@
     </aside>
 
     <div class="main-area">
-        <button pButton icon="pi pi-bars" class="p-button-text sidebar-toggle" (click)="toggleSidebar()">
-        </button>
-
+        <button pButton icon="pi pi-bars" class="p-button-text sidebar-toggle" (click)="toggleSidebar()"></button>
         <main class="content">
             <router-outlet></router-outlet>
         </main>
@@ -48,22 +37,42 @@
 
 </div>
 
-<div class="invalid-license-card" *ngIf="isLicenseValid">
-    <div class="invalid-license-card__overlay"></div>
-    <div class="invalid-license-card__content">
-        <h3 class="invalid-license-card__heading">{{ "lblInvalidLicenseHeading" | translate }}</h3>
-        <p class="invalid-license-card__message">{{ verifyLicenseResponse.message }}</p>
+<!-- ── License Invalid Overlay — blocks all interaction ──────────────────── -->
+<div class="license-overlay" *ngIf="isLicenseInvalid">
 
-        <div class="invalid-license-card__footer">
-            <p class="invalid-license-card__contact">{{ "lblInvalidLicenseMessage" | translate }}</p>
+    <div class="license-card">
 
+        <div class="license-card__icon">
+            <i class="pi pi-lock"></i>
         </div>
+
+        <h3 class="license-card__heading">{{ "lblInvalidLicenseHeading" | translate }}</h3>
+
+        <p class="license-card__message">{{ verifyLicenseResponse.message }}</p>
+
+        <!-- Error code badge -->
+        <div class="license-card__code" *ngIf="verifyLicenseResponse.code">
+            <span>Error {{ verifyLicenseResponse.code }}</span>
+        </div>
+
+        <!-- Device ID — so user can send it to you for license generation -->
+        <div class="license-card__device" *ngIf="deviceId">
+            <span class="license-card__device-label">Your Device ID</span>
+            <div class="license-card__device-id">
+                <code>{{ deviceId }}</code>
+                <button pButton icon="pi pi-copy" class="p-button-text p-button-sm"
+                    (click)="copyDeviceId()" pTooltip="Copy to clipboard">
+                </button>
+            </div>
+            <span class="license-card__device-hint">
+                Send this to your vendor to receive your license file.
+            </span>
+        </div>
+
+        <div class="license-card__footer">
+            <p class="license-card__contact">{{ "lblInvalidLicenseMessage" | translate }}</p>
+        </div>
+
     </div>
 
 </div>
-
-<!-- <p-dialog maskStyleClass="backdrop-blur-sm"  styleClass="!border-0 !bg-transparent">
-    <ng-template #headless>
-        
-    </ng-template>
-</p-dialog> -->

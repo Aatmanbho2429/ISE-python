@@ -1,0 +1,117 @@
+// ── Full-screen blocking overlay ─────────────────────────────────────────────
+.license-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;   // blocks ALL clicks on app below
+}
+
+// ── License card ─────────────────────────────────────────────────────────────
+.license-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px 36px 32px;
+    width: 480px;
+    max-width: calc(100vw - 32px);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+    text-align: center;
+
+    &__icon {
+        width: 56px;
+        height: 56px;
+        background: #fee2e2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+
+        i {
+            font-size: 24px;
+            color: #ef4444;
+        }
+    }
+
+    &__heading {
+        font-size: 20px;
+        font-weight: 700;
+        color: #111;
+        margin: 0 0 10px;
+    }
+
+    &__message {
+        font-size: 14px;
+        color: #555;
+        margin: 0 0 16px;
+        line-height: 1.5;
+    }
+
+    &__code {
+        display: inline-block;
+        background: #f3f4f6;
+        border-radius: 6px;
+        padding: 4px 12px;
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 20px;
+    }
+
+    // Device ID section
+    &__device {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 20px;
+        text-align: left;
+    }
+
+    &__device-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+    }
+
+    &__device-id {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+
+        code {
+            font-size: 11px;
+            color: #333;
+            word-break: break-all;
+            font-family: monospace;
+            line-height: 1.4;
+        }
+    }
+
+    &__device-hint {
+        display: block;
+        font-size: 11px;
+        color: #aaa;
+        margin-top: 6px;
+    }
+
+    &__footer {
+        border-top: 1px solid #f0f0f0;
+        padding-top: 16px;
+        margin-top: 4px;
+    }
+
+    &__contact {
+        font-size: 13px;
+        color: #888;
+        margin: 0;
+    }
+}

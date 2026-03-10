@@ -17,85 +17,68 @@ import { verifyLicenseResponse } from '../../models/response/verifyLicenseRespon
 })
 export class Master implements OnInit {
   items: MenuItem[] | undefined;
-  licenseValidateResponse: any;
   public subscriptions = new Subscription();
-  public isLicenseValid: boolean = false;
 
+  // true = license INVALID = show blocking popup
+  public isLicenseInvalid: boolean = false;
   public verifyLicenseResponse: verifyLicenseResponse = new verifyLicenseResponse();
+  public deviceId: string = '';
 
-  constructor(public electronServiceCustom: ElectronServicesCustom, private ngZone: NgZone, private cdr: ChangeDetectorRef) {
-
-  }
-
-  ngOnInit() {
-    this.items = [
-      {
-        separator: true
-      },
-      {
-        label: 'Documents',
-        items: [
-          {
-            label: 'New',
-            icon: 'pi pi-plus',
-            routerLink: '/image'
-          },
-          {
-            label: 'Search',
-            icon: 'pi pi-search',
-            routerLink: ''
-
-          }
-        ]
-      },
-      {
-        label: 'Profile',
-        items: [
-          {
-            label: 'Settings',
-            icon: 'pi pi-cog',
-            shortcut: '⌘+O'
-          },
-          {
-            label: 'Messages',
-            icon: 'pi pi-inbox',
-            badge: '2'
-          },
-          {
-            label: 'Logout',
-            icon: 'pi pi-sign-out',
-            shortcut: '⌘+Q',
-            linkClass: '!text-red-500 dark:!text-red-400'
-          }
-        ]
-      },
-      {
-        separator: true
-      }
-    ];
-  }
   isSidebarCollapsed = false;
 
   menuItems: MenuItem[] = [
-    {
-      label: 'Dashboard',
-      icon: 'pi pi-home',
-      routerLink: '/image',
-      items: []
-    },
-    {
-      label: 'Users',
-      icon: 'pi pi-users',
-      routerLink: '/users'
-    },
-    {
-      label: 'Settings',
-      icon: 'pi pi-cog',
-      routerLink: '/'
-    }
+    { label: 'Dashboard', icon: 'pi pi-home', routerLink: '/image' },
+    { label: 'Users', icon: 'pi pi-users', routerLink: '/users' },
+    { label: 'Settings', icon: 'pi pi-cog', routerLink: '/' }
   ];
+
+  constructor(
+    public electronServiceCustom: ElectronServicesCustom,
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
+  ) { }
+
+  async ngOnInit() {
+    setTimeout(() => {
+      this.validateLicense();
+    }, 100);
+  }
+
+  async validateLicense() {
+    try {
+      const raw = await this.electronServiceCustom.validateLicense();
+      const response = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+      this.verifyLicenseResponse.status = response.status;
+      this.verifyLicenseResponse.message = response.message;
+      this.verifyLicenseResponse.code = response.code;
+
+      // Show blocking popup if license is NOT valid
+      this.isLicenseInvalid = !response.status;
+
+      // If invalid — also fetch device ID so user can send it to you
+      if (this.isLicenseInvalid) {
+        try {
+          this.deviceId = await this.electronServiceCustom.getDeviceId();
+        } catch {
+          this.deviceId = 'Unable to retrieve device ID';
+        }
+      }
+
+    } catch {
+      this.isLicenseInvalid = true;
+      this.verifyLicenseResponse.message = 'License validation failed. Please contact support.';
+    }
+
+    this.cdr.markForCheck();
+  }
 
   toggleSidebar() {
     this.isSidebarCollapsed = !this.isSidebarCollapsed;
   }
+  copyDeviceId() {
+    navigator.clipboard.writeText(this.deviceId);
+  }
 }
+
+// Add this method inside the Master class:
