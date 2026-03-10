@@ -5,8 +5,9 @@ import numpy as np
 from app.core import database as db
 from app.core import indexer
 from app.core.embedder import Embedder
-from app.core.progress import set_progress
+from app.core.progress import set_progress, reset
 from app.services.sync_service import sync_folder
+from app.utils.file_utils import scan_images
 from app.utils.image_loader import preprocess_batch_parallel
 
 
@@ -18,10 +19,11 @@ class BaseResponse:
         self.data    = {"success": [], "errors": [], "results": []}
 
 
-def _get_query_embedding(query_image: str) -> "np.ndarray":
+def _get_query_embedding(query_image: str, response: BaseResponse) -> np.ndarray:
     embedder = Embedder()
     batch, valid, failed = preprocess_batch_parallel([query_image])
     if not valid:
+        response.message = "Failed to process query image."
         raise RuntimeError(failed[0]["reason"])
     return embedder.embed_batch(batch)[0]
 
@@ -31,17 +33,36 @@ def search(query_image: str, folder_path: str, top_k: int) -> str:
     folder_path = os.path.normpath(folder_path)
     index       = indexer.load_index()
 
-    # Sync folder — embed any new/changed images
-    sync_folder(index, folder_path, response)
-    indexer.save_index(index)
+    if not os.path.exists(query_image):
+        response.status  = False
+        response.message = "Query image not found."
+        response.code    = 400
+        return json.dumps(response.__dict__, indent=2)
 
-    # Run similarity search
+    if index == "Error loading faiss.index":
+        response.status  = False
+        response.message = "Failed to load index. Please sync your folders first."
+        response.code    = 500
+        return json.dumps(response.__dict__, indent=2)
+
+    # ── Only sync if disk count != DB count ─────────────────────────────
+    # This prevents re-hashing all 2700 files on every search call
+    con        = db.get_connection()
+    db_count   = db.get_folder_file_count(con, folder_path)
+    disk_count = sum(1 for _ in scan_images(folder_path))
+    con.close()
+
+    if db_count != disk_count:
+        sync_folder(index, folder_path, response)
+        indexer.save_index(index)
+
+    # ── Run similarity search ────────────────────────────────────────────
     set_progress(phase="searching", done=0, total=1, current=os.path.basename(query_image))
 
     con = db.get_connection()
     try:
-        id_map         = db.get_folder_id_map(con, folder_path)
-        query          = _get_query_embedding(query_image)
+        id_map          = db.get_folder_id_map(con, folder_path)
+        query           = _get_query_embedding(query_image, response)
         scores, indices = indexer.search_index(index, query, top_k)
 
         for rank, (idx, score) in enumerate(zip(indices, scores)):
@@ -59,11 +80,9 @@ def search(query_image: str, folder_path: str, top_k: int) -> str:
     finally:
         con.close()
 
-    set_progress(phase="idle", done=1, current="")
+    reset()
 
-    response.message = (
-        "Search completed with errors" if response.data["errors"]
-        else "Search completed successfully"
-    )
-    response.code = 207 if response.data["errors"] else 200
+    if response.message == "":
+        response.message = "Search completed successfully"
+    response.code = 200
     return json.dumps(response.__dict__, indent=2)
