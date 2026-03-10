@@ -64,3 +64,24 @@ class Api:
         )
         response.code = 207 if response.data["errors"] else 200
         return json.dumps(response.__dict__, indent=2)
+    
+    def get_thumbnail(self, path: str) -> str:
+        """
+        Converts any image (PSB, TIFF, JPG, PNG) to a base64 JPEG data URL.
+        Called by Angular to display images that browsers can't open directly.
+        Returns: "data:image/jpeg;base64,/9j/4AAQ..." or "error" on failure.
+        """
+        import base64
+        import io
+        from app.utils.image_loader import load_image_fast
+
+        try:
+            img = load_image_fast(path)
+            img.thumbnail((400, 400))          # resize for display — no need to send full res
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=85)
+            b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+            return f"data:image/jpeg;base64,{b64}"
+        except Exception as e:
+            print(f"[thumbnail] failed for {path}: {e}", flush=True)
+            return "error"

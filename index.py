@@ -1,408 +1,196 @@
+"""
+Benchmark: decompress PSB → save temp JPEG → load temp JPEG → delete temp JPEG
+Tests the full pipeline to see total time per file.
+
+Run: python benchmark_temp.py
+"""
+import time
 import os
 import sys
-import webview
-from tkinter import filedialog
-import json
-import hashlib
-import numpy as np
+import tempfile
+import struct
+import io
+import shutil
 from PIL import Image
-import onnxruntime as ort
-import faiss
-import platform
-import subprocess
-from concurrent.futures import ThreadPoolExecutor
-import threading
-from psd_tools import PSDImage
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-import base64
 
-# -------------------- Core Models --------------------
+TEST_FOLDER = r"D:\\ImageDb\\PSB FILE\\GLOSSY"
+MAX_FILES   = 10
+PREVIEW_SIZE = 512
 
-class BaseResponse:
-    def __init__(self):
-        self.status  = True
-        self.message = ""
-        self.code    = 200
-        self.data    = {"success": [], "errors": [], "results": []}
 
-# -------------------- Paths --------------------
+def _extract_psb_thumbnail(path: str):
+    """Raw byte extraction — fast path if thumbnail exists."""
+    try:
+        with open(path, "rb") as f:
+            if f.read(4) != b"8BPS":
+                return None
+            f.read(2); f.read(6); f.read(2); f.read(4); f.read(4); f.read(2); f.read(2)
+            f.seek(struct.unpack(">I", f.read(4))[0], 1)
+            end = f.tell() + struct.unpack(">I", f.read(4))[0]
+            while f.tell() < end:
+                if f.read(4) != b"8BIM": break
+                rid      = struct.unpack(">H", f.read(2))[0]
+                name_len = struct.unpack("B", f.read(1))[0]
+                pad      = name_len if name_len > 0 else 1
+                f.read(pad + (pad % 2))
+                rlen   = struct.unpack(">I", f.read(4))[0]
+                rstart = f.tell()
+                if rid in (0x0409, 0x0408):
+                    fmt = struct.unpack(">I", f.read(4))[0]
+                    f.read(16)
+                    jpeg_size = struct.unpack(">I", f.read(4))[0]
+                    f.read(4)
+                    if fmt == 1:
+                        data = f.read(jpeg_size)
+                        return Image.open(io.BytesIO(data)).convert("RGB")
+                f.seek(rstart + rlen + (rlen % 2))
+    except Exception:
+        pass
+    return None
 
-def get_exe_dir():
-    if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
 
-BASE_DIR  = get_exe_dir()
-FAISS_DIR = os.path.join(BASE_DIR, "faiss")
-os.makedirs(FAISS_DIR, exist_ok=True)
-
-INDEX_PATH = os.path.join(FAISS_DIR, "index.faiss")
-META_PATH  = os.path.join(FAISS_DIR, "meta.json")
-
-IMAGE_EXTENSIONS          = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".psd", ".psb")
-IMAGE_EXTENSIONS_FOR_FILE = "*.jpg *.jpeg *.png *.tiff *.tif *.psd *.psb"
-
-BATCH_SIZE  = 64     # Increase to 128 if GPU has >8GB VRAM
-NUM_WORKERS = 8      # Parallel image loading threads
-HASH_BYTES  = 65536  # Read only first 64KB for fast dedup hashing
-EMB_DIM     = 768    # CLIP vision model output dimension
-
-# -------------------- Model --------------------
-
-MODEL_PATH = os.path.join(BASE_DIR, "clip_vitb32.onnx")
-PROVIDERS  = (
-    ["CUDAExecutionProvider", "CPUExecutionProvider"]
-    if "CUDAExecutionProvider" in ort.get_available_providers()
-    else ["CPUExecutionProvider"]
-)
-
-sess_options                           = ort.SessionOptions()
-sess_options.execution_mode           = ort.ExecutionMode.ORT_PARALLEL
-sess_options.inter_op_num_threads     = 4
-sess_options.intra_op_num_threads     = 4
-sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-
-ORT_SESSION = ort.InferenceSession(MODEL_PATH, sess_options=sess_options, providers=PROVIDERS)
-ORT_LOCK    = threading.Lock()
-
-# Confirmed from model inspection:
-# Input:  'pixel_values'  shape: [batch, 3, 224, 224]
-# Output: 'embeddings'    shape: [1, 512]  (we override batch dynamically)
-ORT_INPUT  = "pixel_values"
-ORT_OUTPUT = "embeddings"
-
-# CLIP normalization constants
-CLIP_MEAN = np.array([0.48145466, 0.4578275,  0.40821073], dtype=np.float32)
-CLIP_STD  = np.array([0.26862954, 0.26130258, 0.27577711], dtype=np.float32)
-
-# -------------------- Utilities --------------------
-
-def fast_hash(path):
-    """Hash file size + first 64KB — fast dedup without reading huge PSB files."""
-    h = hashlib.sha256()
-    h.update(str(os.path.getsize(path)).encode())
-    with open(path, "rb") as f:
-        h.update(f.read(HASH_BYTES))
-    return h.hexdigest()
-
-def load_meta():
-    os.makedirs(os.path.dirname(META_PATH), exist_ok=True)
-    if os.path.exists(META_PATH):
-        try:
-            with open(META_PATH, "r") as f:
-                meta = json.load(f)
-        except Exception:
-            # Corrupted meta — start fresh
-            meta = {"next_id": 0, "files": {}}
-    else:
-        meta = {"next_id": 0, "files": {}}
-
-    for path in list(meta["files"].keys()):
-        if not os.path.exists(path):
-            meta["files"].pop(path)
-
-    return meta
-
-def save_meta(meta):
-    os.makedirs(os.path.dirname(META_PATH), exist_ok=True)
-    with open(META_PATH, "w") as f:
-        json.dump(meta, f, indent=2)
-
-def load_index(dim):
-    os.makedirs(os.path.dirname(INDEX_PATH), exist_ok=True)
-    if os.path.exists(INDEX_PATH):
-        try:
-            return faiss.read_index(INDEX_PATH)
-        except Exception:
-            # Corrupted index — start fresh
-            pass
-    return faiss.IndexIDMap(faiss.IndexFlatIP(dim))
-
-# -------------------- Image Handling --------------------
-
-def load_image_fast(path):
+def process_one_psb(path: str) -> dict:
     """
-    Fast image loading.
-    PSD/PSB: use embedded thumbnail (topil) instead of full composite.
+    Full pipeline for one PSB:
+    1. Try raw byte extract (fast)
+    2. If not found — decompress with psd_tools (slow, but only once)
+    3. Save to temp JPEG
+    4. Load temp JPEG (this is what gets embedded)
+    5. Delete temp JPEG
+    Returns timing breakdown.
     """
-    if path.lower().endswith((".psd", ".psb")):
-        psd = PSDImage.open(path)
-        img = psd.topil()
-        if img is None:
-            img = psd.composite()
-        if img is None:
-            raise RuntimeError("PSD/PSB load failed")
-        return img.convert("RGB")
-    else:
-        return Image.open(path).convert("RGB")
-
-def preprocess_single(path):
-    """Load and preprocess one image → (3, 224, 224) float32."""
-    img = load_image_fast(path)
-    img = img.resize((224, 224), Image.BILINEAR)
-    arr = np.array(img, dtype=np.float32) / 255.0
-    arr = (arr - CLIP_MEAN) / CLIP_STD
-    arr = np.transpose(arr, (2, 0, 1))
-    return arr  # (3, 224, 224)
-
-def preprocess_batch_parallel(paths):
-    """
-    Preprocess images in parallel threads (I/O bound).
-    Returns: (batch_array, valid_paths, failed_list)
-    """
-    results = [None] * len(paths)
-
-    def load_one(args):
-        i, path = args
-        try:
-            results[i] = (preprocess_single(path), path, None)
-        except Exception as e:
-            results[i] = (None, path, str(e))
-
-    with ThreadPoolExecutor(max_workers=NUM_WORKERS) as ex:
-        list(ex.map(load_one, enumerate(paths)))
-
-    batch, valid_paths, failed = [], [], []
-    for arr, path, err in results:
-        if arr is not None:
-            batch.append(arr)
-            valid_paths.append(path)
-        else:
-            failed.append({"file": path, "reason": err})
-
-    if not batch:
-        return None, [], failed
-
-    return np.stack(batch).astype(np.float32), valid_paths, failed  # (N, 3, 224, 224)
-
-def get_embeddings_batch(paths):
-    """
-    Run batched ONNX inference.
-    Handles the static output shape [1, 512] by running each batch correctly.
-    Returns: (embeddings_array, valid_paths, failed_list)
-    """
-    batch, valid_paths, failed = preprocess_batch_parallel(paths)
-    if batch is None:
-        return np.array([]), [], failed
-
-    with ORT_LOCK:
-        # Run inference — batch input is (N, 3, 224, 224)
-        # Model was exported with dynamic batch axis on input
-        raw = ORT_SESSION.run([ORT_OUTPUT], {ORT_INPUT: batch})[0]  # may be (1,512) or (N,512)
-
-    # If output is hardcoded to [1, 512], run images one by one as fallback
-    if raw.shape[0] == 1 and len(valid_paths) > 1:
-        embs = []
-        with ORT_LOCK:
-            for i in range(len(valid_paths)):
-                single = batch[i:i+1]  # (1, 3, 224, 224)
-                out = ORT_SESSION.run([ORT_OUTPUT], {ORT_INPUT: single})[0]
-                embs.append(out[0])
-        raw = np.stack(embs)  # (N, 512)
-
-    norms = np.linalg.norm(raw, axis=1, keepdims=True)
-    embs  = (raw / norms).astype(np.float32)
-    return embs, valid_paths, failed
-
-def get_embedding(path):
-    """Single image embedding for query."""
-    embs, valid, failed = get_embeddings_batch([path])
-    if not valid:
-        raise RuntimeError(failed[0]["reason"])
-    return embs[0]
-
-# -------------------- Folder Sync --------------------
-
-def scan_images(folder):
-    for root, _, files in os.walk(folder):
-        for f in files:
-            if f.lower().endswith(IMAGE_EXTENSIONS):
-                yield os.path.normpath(os.path.join(root, f))
-
-def find_by_hash(meta, file_hash_value):
-    for p, info in meta["files"].items():
-        if info["hash"] == file_hash_value:
-            return p, info
-    return None, None
-
-def sync_folder(index, meta, folder_path, response):
-    folder_path     = os.path.normpath(folder_path)
-    current_files   = list(scan_images(folder_path))
-    seen_hashes     = set()
-    needs_embedding = []
-
-    # ── Step 1: Hash all files in parallel ──────────────────────────────
-    def hash_one(path):
-        try:
-            return path, fast_hash(path), None
-        except Exception as e:
-            return path, None, str(e)
-
-    with ThreadPoolExecutor(max_workers=NUM_WORKERS) as ex:
-        for path, h, err in ex.map(hash_one, current_files):
-            if err:
-                response.status = False
-                response.data["errors"].append({"file": path, "reason": err})
-                continue
-
-            seen_hashes.add(h)
-            existing_path, existing_info = find_by_hash(meta, h)
-
-            if existing_info:
-                if existing_path != path:
-                    meta["files"][path] = meta["files"].pop(existing_path)
-                response.data["success"].append(path)
-            else:
-                needs_embedding.append((path, h))
-
-    # ── Step 2: Embed new files in batches ──────────────────────────────
-    total = len(needs_embedding)
-    done  = 0
-
-    for i in range(0, total, BATCH_SIZE):
-        chunk       = needs_embedding[i:i + BATCH_SIZE]
-        batch_paths = [p for p, _ in chunk]
-        hash_lookup = {p: h for p, h in chunk}
-
-        embs, valid_paths, failed = get_embeddings_batch(batch_paths)
-
-        for f in failed:
-            response.status = False
-            response.data["errors"].append(f)
-
-        for path, emb in zip(valid_paths, embs):
-            idx = meta["next_id"]
-            index.add_with_ids(emb.reshape(1, -1), np.array([idx]))
-            meta["files"][path] = {"id": idx, "hash": hash_lookup[path]}
-            meta["next_id"] += 1
-            response.data["success"].append(path)
-
-        done += len(chunk)
-        print(f"[sync] {done}/{total} embedded", flush=True)
-
-    # ── Step 3: Remove deleted files ────────────────────────────────────
-    for path, info in list(meta["files"].items()):
-        if path.startswith(folder_path) and info["hash"] not in seen_hashes:
-            index.remove_ids(np.array([info["id"]]))
-            del meta["files"][path]
-
-# -------------------- Search --------------------
-
-def search_img(query, index, meta, folder_path, top_k, response):
-    q           = get_embedding(query)
-    D, I        = index.search(q.reshape(1, -1), top_k)
-    folder_path = os.path.normpath(folder_path)
-
-    id_map = {
-        v["id"]: k
-        for k, v in meta["files"].items()
-        if k.startswith(folder_path)
+    result = {
+        "file":         os.path.basename(path),
+        "size_mb":      os.path.getsize(path) / 1024 / 1024,
+        "raw_ms":       0,
+        "decompress_ms":0,
+        "save_ms":      0,
+        "load_ms":      0,
+        "delete_ms":    0,
+        "total_ms":     0,
+        "method":       "",
+        "error":        None,
+        "img_size":     None,
     }
 
-    for i, idx in enumerate(I[0]):
-        if idx in id_map:
-            response.data["results"].append({
-                "rank":       i + 1,
-                "path":       id_map[idx],
-                "similarity": float(D[0][i])
-            })
+    temp_path = None
+    t_total   = time.perf_counter()
 
-def search(query_image, folder_path, top_k):
-    response = BaseResponse()
-    meta     = load_meta()
-    index    = load_index(EMB_DIM)
+    try:
+        # ── Step 1: Try raw byte extraction ─────────────────────────────
+        t = time.perf_counter()
+        img = _extract_psb_thumbnail(path)
+        result["raw_ms"] = (time.perf_counter() - t) * 1000
 
-    sync_folder(index, meta, folder_path, response)
+        if img is not None:
+            result["method"] = "raw_bytes"
+        else:
+            # ── Step 2: Full decompress ──────────────────────────────────
+            result["method"] = "psd_tools"
+            t = time.perf_counter()
+            from psd_tools import PSDImage
+            psd = PSDImage.open(path)
+            img = psd.topil()
+            if img is None:
+                img = psd.composite()
+            if img is None:
+                raise RuntimeError("No image data found")
+            img = img.convert("RGB")
+            result["decompress_ms"] = (time.perf_counter() - t) * 1000
 
-    faiss.write_index(index, INDEX_PATH)
-    save_meta(meta)
+        # ── Step 3: Save to temp JPEG ────────────────────────────────────
+        t = time.perf_counter()
+        tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+        temp_path = tmp.name
+        tmp.close()
 
-    search_img(query_image, index, meta, folder_path, int(top_k), response)
+        thumb = img.copy()
+        thumb.thumbnail((PREVIEW_SIZE, PREVIEW_SIZE), Image.LANCZOS)
+        thumb.save(temp_path, "JPEG", quality=85, optimize=True)
+        result["save_ms"] = (time.perf_counter() - t) * 1000
 
-    response.message = (
-        "Search completed with file errors"
-        if response.data["errors"]
-        else "Search completed successfully"
+        temp_size_kb = os.path.getsize(temp_path) / 1024
+
+        # ── Step 4: Load temp JPEG (simulates what embedder will read) ───
+        t = time.perf_counter()
+        loaded = Image.open(temp_path).convert("RGB")
+        result["img_size"] = loaded.size
+        result["load_ms"]  = (time.perf_counter() - t) * 1000
+
+        # ── Step 5: Delete temp JPEG ─────────────────────────────────────
+        t = time.perf_counter()
+        os.remove(temp_path)
+        temp_path = None
+        result["delete_ms"] = (time.perf_counter() - t) * 1000
+
+    except Exception as e:
+        result["error"] = str(e)
+    finally:
+        # Safety cleanup
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+
+    result["total_ms"] = (time.perf_counter() - t_total) * 1000
+    return result
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+files = []
+for root, _, fs in os.walk(TEST_FOLDER):
+    for f in fs:
+        if f.lower().endswith((".psb", ".psd")):
+            files.append(os.path.join(root, f))
+        if len(files) >= MAX_FILES:
+            break
+    if len(files) >= MAX_FILES:
+        break
+
+if not files:
+    print(f"No PSB files found in {TEST_FOLDER}")
+    sys.exit(1)
+
+print(f"Testing {len(files)} files from {TEST_FOLDER}")
+print(f"Pipeline: decompress → temp JPEG → load → delete\n")
+print(f"{'File':<45} {'MB':>6}  {'method':<10} {'decomp':>8} {'save':>6} {'load':>6} {'del':>5} {'TOTAL':>8}")
+print("=" * 105)
+
+total_time = 0
+success    = 0
+
+for path in files:
+    r = process_one_psb(path)
+
+    if r["error"]:
+        print(f"❌ {r['file']:<43} {r['size_mb']:>6.1f}  ERROR: {r['error']}")
+        continue
+
+    decomp = f"{r['decompress_ms']:.0f}ms" if r["method"] == "psd_tools" else f"{r['raw_ms']:.0f}ms"
+    print(
+        f"✅ {r['file']:<43} {r['size_mb']:>6.1f}"
+        f"  {r['method']:<10}"
+        f"  {decomp:>8}"
+        f"  {r['save_ms']:>4.0f}ms"
+        f"  {r['load_ms']:>4.0f}ms"
+        f"  {r['delete_ms']:>3.0f}ms"
+        f"  {r['total_ms']:>6.0f}ms"
     )
-    response.code = 207 if response.data["errors"] else 200
-    return json.dumps(response.__dict__, indent=2)
+    total_time += r["total_ms"]
+    success    += 1
 
-# -------------------- License (UNCHANGED) --------------------
+print("=" * 105)
 
-LICENSE_FILE_NAME = "license.json"
+if success > 0:
+    avg = total_time / success
+    print(f"\nAverage per file:      {avg:.0f}ms  ({avg/1000:.1f}s)")
+    print(f"\n10k files estimates:")
+    for workers in [2, 4, 6, 8]:
+        mins = 10000 * avg / workers / 1000 / 60
+        print(f"  {workers} workers → {mins:.0f} min")
 
-def _run_command(cmd):
-    try:
-        return subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL).decode().strip()
-    except Exception:
-        return ""
-
-def get_device_id():
-    return hashlib.sha256(platform.node().encode()).hexdigest()
-
-class VerifyLicenseRespone:
-    def __init__(self):
-        self.status  = False
-        self.message = ""
-        self.code    = 400
-
-def get_license_path():
-    return os.path.join(get_exe_dir(), LICENSE_FILE_NAME)
-
-def validate_license():
-    resp         = VerifyLicenseRespone()
-    license_path = get_license_path()
-
-    if not os.path.exists(license_path):
-        resp.message = "License file not found"
-        resp.code    = 404
-        return resp
-
-    try:
-        with open(license_path, "r", encoding="utf-8") as f:
-            license_data = json.load(f)
-
-        resp.status  = True
-        resp.message = "License is valid"
-        resp.code    = 200
-        return resp
-
-    except Exception:
-        resp.message = "License validation failed"
-        return resp
-
-# -------------------- Web API --------------------
-
-class Api:
-    def selectFile(self):
-        return filedialog.askopenfilename(
-            title="Select a file",
-            filetypes=(("Image files", IMAGE_EXTENSIONS_FOR_FILE), ("All files", "*.*"))
-        )
-
-    def selectFolder(self):
-        return filedialog.askdirectory(title="Select a folder")
-
-    def validateLicense(self):
-        return json.dumps(validate_license().__dict__)
-
-    def start_search(self, query_image, folder_path, top_k):
-        return search(query_image, folder_path, top_k)
-
-# -------------------- App --------------------
-
-api = Api()
-webview.create_window(
-    "My App",
-    "http://localhost:4200/",
-    js_api=api
-)
-
-webview.start(
-    gui="edgechromium",
-    debug=True,
-    http_server=True,
-    private_mode=False,
-    args=["--allow-file-access-from-files", "--disable-web-security"]
-)
+print(f"\nNOTE: 'decomp' is the slow step — happens once per file only.")
+print(f"      After embedding, the temp file is deleted immediately.")
+print(f"      No permanent files are created on disk.")

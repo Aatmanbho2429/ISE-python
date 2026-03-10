@@ -113,9 +113,10 @@
 
             </div> -->
             <div class="image-card" *ngFor="let item of results">
-                <!-- <div class="image-card__img-container">
-                    <img class="image-card__img" [src]="item.path" alt="can't load image">
-                </div> -->
+                <div class="image-card__img-container">
+                    <img class="image-card__img" [src]="item.thumbnail"
+                    [alt]="item.path" alt="can't load image">
+                </div>
 
                 <div class="image-card__footer">
                     <span class="image-card__label">{{ "lblSourcePath" | translate }}</span>

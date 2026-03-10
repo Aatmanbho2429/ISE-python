@@ -4,11 +4,16 @@
 <!-- Progress card — sits above overlay -->
 <div class="ise-progress" *ngIf="visible">
 
+  <!-- Header: spinner + phase label + percent -->
   <div class="ise-progress__header">
-    <span class="ise-progress__phase">{{ phaseLabel }}</span>
+    <div class="ise-progress__left">
+      <div class="ise-spinner" *ngIf="progress.active"></div>
+      <span class="ise-progress__phase">{{ phaseLabel }}</span>
+    </div>
     <span class="ise-progress__percent">{{ progress.percent }}%</span>
   </div>
 
+  <!-- Progress bar track -->
   <div class="ise-progress__track">
     <div
       class="ise-progress__fill"
@@ -17,6 +22,25 @@
     </div>
   </div>
 
+  <!-- ETA + elapsed -->
+  <div class="ise-progress__timing" *ngIf="progress.active">
+    <span class="ise-progress__eta">{{ etaLabel }}</span>
+    <span class="ise-progress__elapsed" *ngIf="elapsedLabel">{{ elapsedLabel }}</span>
+  </div>
+
+  <!-- File type breakdown — only shown during embedding phase -->
+  <div class="ise-progress__filetypes" *ngIf="progress.phase === 'embedding' && fileTypeList.length > 0">
+    <span
+      class="ise-progress__filetype"
+      *ngFor="let t of fileTypeList">
+      <span class="ise-progress__filetype-done">{{ t.done }}</span>
+      <span class="ise-progress__filetype-sep">/</span>
+      <span class="ise-progress__filetype-total">{{ t.total }}</span>
+      <span class="ise-progress__filetype-ext">{{ t.ext }}</span>
+    </span>
+  </div>
+
+  <!-- File + counts -->
   <div class="ise-progress__footer">
     <span class="ise-progress__file" *ngIf="progress.current">
       {{ progress.current }}

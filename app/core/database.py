@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from app.config import DB_PATH, FAISS_DIR
+from app.core.progress import set_progress, reset
 
 
 def get_connection() -> sqlite3.Connection:
@@ -17,11 +18,10 @@ def get_connection() -> sqlite3.Connection:
             mtime    REAL    NOT NULL DEFAULT 0
         )
     """)
-    # Add mtime column if upgrading from old DB without it
     try:
         con.execute("ALTER TABLE files ADD COLUMN mtime REAL NOT NULL DEFAULT 0")
     except Exception:
-        pass  # Column already exists — ignore
+        pass
     con.execute("CREATE INDEX IF NOT EXISTS idx_hash     ON files(hash)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_path     ON files(path)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_faiss_id ON files(faiss_id)")
@@ -29,20 +29,17 @@ def get_connection() -> sqlite3.Connection:
     return con
 
 
-# def cleanup_missing(con: sqlite3.Connection):
-#     rows    = con.execute("SELECT path FROM files").fetchall()
-#     missing = [r[0] for r in rows if not os.path.exists(r[0])]
-#     if missing:
-#         con.executemany("DELETE FROM files WHERE path=?", [(p,) for p in missing])
-#         con.commit()
 def cleanup_missing_in_folder(con: sqlite3.Connection, index, folder_path: str):
+    folder_prefix = os.path.normpath(folder_path) + os.sep   # fix: os.sep prevents sibling folder match
     rows = con.execute(
         "SELECT path, faiss_id FROM files WHERE path LIKE ?",
-        (folder_path + "%",)
+        (folder_prefix + "%",)
     ).fetchall()
 
-    missing_paths    = []
+    missing_paths     = []
     missing_faiss_ids = []
+
+    set_progress(done=0, total=len(rows), current="", phase="Database Cleanup", errors=0)
 
     for path, faiss_id in rows:
         if not os.path.exists(path):
@@ -51,10 +48,12 @@ def cleanup_missing_in_folder(con: sqlite3.Connection, index, folder_path: str):
 
     if missing_paths:
         con.executemany("DELETE FROM files WHERE path=?", missing_paths)
-        # Also remove from FAISS so no orphaned vectors
         from app.core import indexer
         indexer.remove_embeddings(index, missing_faiss_ids)
         con.commit()
+        set_progress(done=len(rows))
+        reset()
+
 
 def find_by_hash(con: sqlite3.Connection, hash_value: str):
     """Returns (path, faiss_id) or (None, None)"""
@@ -94,17 +93,19 @@ def delete_file(con: sqlite3.Connection, path: str):
 
 def get_folder_id_map(con: sqlite3.Connection, folder_path: str) -> dict:
     """Returns {faiss_id: path} for all files under folder_path"""
+    folder_prefix = os.path.normpath(folder_path) + os.sep   # fix: os.sep prevents sibling folder match
     rows = con.execute(
         "SELECT faiss_id, path FROM files WHERE path LIKE ?",
-        (folder_path + "%",)
+        (folder_prefix + "%",)
     ).fetchall()
     return {r[0]: r[1] for r in rows}
 
 
 def get_folder_hashes(con: sqlite3.Connection, folder_path: str) -> set:
+    folder_prefix = os.path.normpath(folder_path) + os.sep   # fix: os.sep prevents sibling folder match
     rows = con.execute(
         "SELECT hash FROM files WHERE path LIKE ?",
-        (folder_path + "%",)
+        (folder_prefix + "%",)
     ).fetchall()
     return {r[0] for r in rows}
 
@@ -119,7 +120,19 @@ def get_files_by_hashes(con: sqlite3.Connection, hashes: set) -> list:
         list(hashes)
     ).fetchall()
 
-def get_all_path(con:sqlite3.Connection)->list:
-    return con.execute(
-        f"SELECT path from files"
-    ).fetchall()
+
+def get_folder_file_count(con: sqlite3.Connection, folder_path: str) -> int:
+    """
+    Returns count of files in DB under folder_path.
+    Used by search_service for quick check before deciding to sync.
+    """
+    folder_prefix = os.path.normpath(folder_path) + os.sep
+    cur = con.execute(
+        "SELECT COUNT(*) FROM files WHERE path LIKE ?",
+        (folder_prefix + "%",)
+    )
+    return cur.fetchone()[0]
+
+
+def get_all_path(con: sqlite3.Connection) -> list:
+    return con.execute("SELECT path FROM files").fetchall()

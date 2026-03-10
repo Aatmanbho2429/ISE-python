@@ -1,13 +1,12 @@
 // Full-screen transparent blocking overlay
-// Sits over everything, prevents all pointer events while active
 .ise-overlay {
     position: fixed;
-    inset: 0;                          // top/right/bottom/left: 0
-    z-index: 9998;                     // below progress card, above everything else
+    inset: 0;
+    z-index: 9998;
     background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(1.5px);      // subtle blur so user knows UI is locked
+    backdrop-filter: blur(1.5px);
     cursor: not-allowed;
-    pointer-events: all;               // explicitly capture all clicks
+    pointer-events: all;
 }
 
 // Progress card — floats above overlay
@@ -16,7 +15,7 @@
     bottom: 32px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 9999;                     // above overlay
+    z-index: 9999;
     width: 420px;
     max-width: calc(100vw - 48px);
     background: #ffffff;
@@ -24,14 +23,21 @@
     border-radius: 12px;
     padding: 16px 20px 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
-    pointer-events: none;              // card itself doesn't need to be clickable
+    pointer-events: none;
 }
 
+// Header row — spinner + phase label + percent
 .ise-progress__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+}
+
+.ise-progress__left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .ise-progress__phase {
@@ -46,6 +52,23 @@
     color: #222;
 }
 
+// ── Spinning circle ───────────────────────────────────────────────────────────
+.ise-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e0e0e0;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: ise-spin 0.75s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes ise-spin {
+    to { transform: rotate(360deg); }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Progress bar track
 .ise-progress__track {
     width: 100%;
     height: 8px;
@@ -65,6 +88,27 @@
     }
 }
 
+// ── Timing row ────────────────────────────────────────────────────────────────
+.ise-progress__timing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.ise-progress__eta {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6366f1;
+}
+
+.ise-progress__elapsed {
+    font-size: 11px;
+    color: #aaa;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Footer row — filename + counts
 .ise-progress__footer {
     display: flex;
     justify-content: space-between;
@@ -91,3 +135,42 @@
     color: #ef4444;
     font-weight: 600;
 }
+
+// ── File type breakdown ───────────────────────────────────────────────────────
+.ise-progress__filetypes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.ise-progress__filetype {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    font-size: 11px;
+}
+
+.ise-progress__filetype-done {
+    font-weight: 700;
+    color: #6366f1;
+}
+
+.ise-progress__filetype-sep {
+    color: #ccc;
+}
+
+.ise-progress__filetype-total {
+    color: #aaa;
+}
+
+.ise-progress__filetype-ext {
+    margin-left: 3px;
+    font-weight: 600;
+    color: #888;
+    font-size: 10px;
+    letter-spacing: 0.03em;
+}
+// ─────────────────────────────────────────────────────────────────────────────

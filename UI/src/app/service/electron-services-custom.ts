@@ -54,6 +54,12 @@ export class ElectronServicesCustom {
     const raw = await window.pywebview.api.sync_folder(folder_path);
     return typeof raw === 'string' ? JSON.parse(raw) : raw;
   }
+
+  async getThumbnail(path: string): Promise<string> {
+    const result = await window.pywebview.api.get_thumbnail(path);
+    return result;
+    return (window as any).pywebview.api.get_thumbnail(path);
+  }
 }
 
 declare global {

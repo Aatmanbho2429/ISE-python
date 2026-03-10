@@ -10,7 +10,7 @@ def load_index() -> faiss.Index:
         try:
             return faiss.read_index(INDEX_PATH)
         except Exception:
-            print("[indexer] Corrupted index — starting fresh")
+            return "Error loading faiss.index"
     return faiss.IndexIDMap(faiss.IndexFlatIP(EMB_DIM))
 
 

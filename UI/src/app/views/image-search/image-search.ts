@@ -61,7 +61,7 @@ export class ImageSearch implements OnInit {
 
   validateStep(step: number): boolean {
     if (step >= 2 && !this.queryString) return false;
-    if (step >= 3 && !this.folderPath)  return false;
+    if (step >= 3 && !this.folderPath) return false;
     return true;
   }
 
@@ -111,6 +111,7 @@ export class ImageSearch implements OnInit {
         this.folderPath,
         this.number_of_results
       );
+      console.log("Raw response from Search:", response);
       const parsed = typeof response === 'string' ? JSON.parse(response) : response;
 
       this.ngZone.run(() => {
@@ -118,12 +119,12 @@ export class ImageSearch implements OnInit {
           this.systemService.showError(parsed.message || "Search failed");
           return;
         }
-
+        console.log("parsed variable:", parsed);
         const resultsArray = parsed.data?.results || [];
 
         if (resultsArray.length > 0) {
           this.results = resultsArray.map((r: any) => ({
-            path:  this.fixPath(r.path),
+            path: this.fixPath(r.path),
             score: r.similarity
           }));
           this.systemService.showSuccess(`${resultsArray.length} similar images found.`);
@@ -134,26 +135,27 @@ export class ImageSearch implements OnInit {
       });
 
     } catch (err: any) {
+      let message = err?.message || "An error occurred during the search.";
+      this.systemService.showError(message);
+      // let payload: any = null;
+      // try {
+      //   const msg       = err?.message || '';
+      //   const jsonStart = msg.indexOf('{');
+      //   payload = jsonStart !== -1
+      //     ? JSON.parse(msg.substring(jsonStart))
+      //     : { error: 'Unknown error', details: err?.message || 'Search failed' };
+      // } catch {
+      //   payload = { error: 'Unknown error', details: err?.message || 'Search failed' };
+      // }
 
-      let payload: any = null;
-      try {
-        const msg       = err?.message || '';
-        const jsonStart = msg.indexOf('{');
-        payload = jsonStart !== -1
-          ? JSON.parse(msg.substring(jsonStart))
-          : { error: 'Unknown error', details: err?.message || 'Search failed' };
-      } catch {
-        payload = { error: 'Unknown error', details: err?.message || 'Search failed' };
-      }
-
-      this.ngZone.run(() => {
-        if (payload.error?.toLowerCase().includes("license")) {
-          this.displayMembershipPopup = true;
-          this.systemService.showError(payload.details || payload.error);
-          return;
-        }
-        this.systemService.showError(payload.details || payload.error || "Search failed");
-      });
+      // this.ngZone.run(() => {
+      //   if (payload.error?.toLowerCase().includes("license")) {
+      //     this.displayMembershipPopup = true;
+      //     this.systemService.showError(payload.details || payload.error);
+      //     return;
+      //   }
+      //   this.systemService.showError(payload.details || payload.error || "Search failed");
+      // });
 
     } finally {
       // ── STOP PROGRESS BAR ──────────────────────────────────────────────
@@ -169,9 +171,17 @@ export class ImageSearch implements OnInit {
   async openFilePath(path: string) {
     await this.electronServiceCustom.OpenFilePath(path);
   }
+
+  async loadThumbnails() {
+    for (const item of this.results) {
+      item.thumbnail = '';          // show spinner while loading
+      item.thumbnail = await this.electronServiceCustom.getThumbnail(item.path);
+    }
+  }
 }
 
 interface SearchResult {
-  path:  string;
+  path: string;
   score: number;
+  thumbnail?: string;
 }
