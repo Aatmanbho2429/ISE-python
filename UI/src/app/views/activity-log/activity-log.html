@@ -129,7 +129,7 @@
         </div>
 
         <!-- Search results -->
-        <ng-container *ngIf="entry.type==='search'">
+        <ng-container *ngIf="entry.type==='search'" && entry.results.length > 0>
           <div class="al-section-header">
             <i class="pi pi-images"></i> Similar images found
             <span class="al-section-header__count">{{ entry.results.length }}</span>
@@ -152,7 +152,7 @@
         </div>
 
         <!-- Errors -->
-        <!-- <ng-container *ngIf="entry.errors?.length > 0">
+        <ng-container *ngIf="entry.errors.length > 0">
           <div class="al-section-header al-section-header--error">
             <i class="pi pi-exclamation-triangle"></i> Errors
             <span class="al-section-header__count">{{ entry.errors.length }}</span>
@@ -166,7 +166,7 @@
               </div>
             </div>
           </div>
-        </ng-container> -->
+        </ng-container>
 
       </div>
 
