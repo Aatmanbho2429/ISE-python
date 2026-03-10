@@ -7,6 +7,7 @@ from app.config import IMAGE_EXTENSIONS_FOR_FILE
 from app.core.progress import get_progress
 from app.services import search_service, license_service,sync_service
 from app.services import folder_status_service
+from app.core import database as db
 
 class Api:
     def selectFile(self):
@@ -89,3 +90,12 @@ class Api:
     def getDeviceId(self):
         from app.services.license_service import get_device_id
         return get_device_id()
+
+    def get_activity_log(self):
+        """Returns last 30 days of search + sync activity from the DB."""
+        con = db.get_connection()
+        try:
+            entries = db.get_activity_log(con)
+            return json.dumps(entries)
+        finally:
+            con.close()

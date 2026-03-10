@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import numpy as np
 
 from app.core import database as db
@@ -32,6 +33,7 @@ def search(query_image: str, folder_path: str, top_k: int) -> str:
     response    = BaseResponse()
     folder_path = os.path.normpath(folder_path)
     index       = indexer.load_index()
+    t_start     = time.time()
 
     if not os.path.exists(query_image):
         response.status  = False
@@ -45,8 +47,7 @@ def search(query_image: str, folder_path: str, top_k: int) -> str:
         response.code    = 500
         return json.dumps(response.__dict__, indent=2)
 
-    # ── Only sync if disk count != DB count ─────────────────────────────
-    # This prevents re-hashing all 2700 files on every search call
+    # ── Only sync if disk count != DB count ──────────────────────────────
     con        = db.get_connection()
     db_count   = db.get_folder_file_count(con, folder_path)
     disk_count = sum(1 for _ in scan_images(folder_path))
@@ -56,8 +57,9 @@ def search(query_image: str, folder_path: str, top_k: int) -> str:
         sync_folder(index, folder_path, response)
         indexer.save_index(index)
 
-    # ── Run similarity search ────────────────────────────────────────────
-    set_progress(phase="searching", done=0, total=1, current=os.path.basename(query_image))
+    # ── Similarity search ─────────────────────────────────────────────────
+    set_progress(phase="searching", done=0, total=1,
+                 current=os.path.basename(query_image))
 
     con = db.get_connection()
     try:
@@ -78,6 +80,18 @@ def search(query_image: str, folder_path: str, top_k: int) -> str:
         response.status = True
         response.data["errors"].append({"file": query_image, "reason": str(e)})
     finally:
+        # ── Write activity log ──────────────────────────────────────────
+        try:
+            db.log_search(
+                con          = con,
+                query_image  = query_image,
+                folder       = folder_path,
+                results      = response.data["results"],
+                errors       = response.data["errors"],
+                duration_sec = time.time() - t_start,
+            )
+        except Exception as e:
+            print(f"[activity_log] write failed: {e}", flush=True)
         con.close()
 
     reset()

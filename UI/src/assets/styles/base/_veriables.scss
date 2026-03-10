@@ -1,46 +1,50 @@
+// ═══════════════════════════════════════════════════════════════════════
+// ISE — DESIGN TOKENS
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Legacy grey vars (keep for backward compatibility) ───────────────
 $color-grey-light-1: #f7f7f7;
 $color-grey-light-2: #eee;
-$color-grey-light-3: #f6f4f486;
+$color-grey-light-3: rgba(246, 244, 244, 0.53);
+$color-grey-dark:    #777;
+$color-grey-dark-2:  #999;
+$color-grey-dark-3:  #333;
+$color-grey-dark-4:  rgba(51, 51, 51, 0.35);
+$color-white:        #fff;
+$color-black:        #000;
+$color-black-1:      #2c2c2c;
 
-$color-grey-dark: #777;
-$color-grey-dark-2: #999;
-$color-grey-dark-3: #333;
-$color-grey-dark-4: #33333358;
-
-$color-white: #fff;
-$color-black: #000;
-$color-black-1: #2c2c2c;
-
-$color-green: #10b981;
-$color-green-1: #12de9a;
-
+// ── Brand greens ─────────────────────────────────────────────────────
+$color-green:     #10b981;
+$color-green-1:   #12de9a;
 $color-green-50:  #ecfdf5;
 $color-green-100: #d1fae5;
 $color-green-200: #a7f3d0;
 $color-green-300: #6ee7b7;
 $color-green-400: #34d399;
-$color-green-500: #10b981; // PRIMARY GREEN (used by PrimeNG)
+$color-green-500: #10b981;
 $color-green-600: #059669;
 $color-green-700: #047857;
 $color-green-800: #065f46;
 $color-green-900: #064e3b;
 $color-green-950: #022c22;
 
-$color-navy: #0a2540;       // Base navy
-$color-navy-1: #102a43;     // Slightly brighter
-
+// ── Navy ─────────────────────────────────────────────────────────────
+$color-navy:     #0a2540;
+$color-navy-1:   #102a43;
 $color-navy-50:  #f0f5fa;
 $color-navy-100: #dbe7f3;
 $color-navy-200: #b6cce6;
 $color-navy-300: #8fb0d9;
 $color-navy-400: #5f8fc7;
-$color-navy-500: #1f4f82;   // ⭐ PRIMARY (PrimeNG replacement)
+$color-navy-500: #1f4f82;
 $color-navy-600: #173e68;
 $color-navy-700: #112f4f;
 $color-navy-800: #0a2540;
 $color-navy-900: #071d33;
 $color-navy-950: #041422;
 
+// ── Gray scale ───────────────────────────────────────────────────────
 $color-gray-50:  #f9fafb;
 $color-gray-100: #f3f4f6;
 $color-gray-200: #e5e7eb;
@@ -53,17 +57,46 @@ $color-gray-800: #1f2937;
 $color-gray-900: #111827;
 $color-gray-950: #030712;
 
-
-
-$color-validate:red;
-
-$color-gold:#FFF4CC;
-$color-gold-2:#E6B800;
-$color-gold-3:#B38F00;
-
-$color-diamond:#F5FAFF;
+// ── Accent / status ───────────────────────────────────────────────────
+$color-validate: #ef4444;
+$color-gold:     #FFF4CC;
+$color-gold-2:   #E6B800;
+$color-gold-3:   #B38F00;
+$color-diamond:  #F5FAFF;
 $color-diamond-2:#3B82F6;
 $color-diamond-3:#1E40AF;
 $color-diamond-4:#2563EB;
 
-$sidebar-width:30rem;
+// ── NEW: Unified surface tokens (dark theme) ─────────────────────────
+$surface-bg:       #0c1929;   // deepest background
+$surface-raised:   #111f30;   // card / panel surface
+$surface-overlay:  #162840;   // input / inner panel
+$surface-border:   rgba(255,255,255, 0.07);
+$surface-hover:    rgba(255,255,255, 0.04);
+
+// ── NEW: Teal accent (primary interactive colour) ────────────────────
+$accent:           #0ea5e9;
+$accent-hover:     #0284c7;
+$accent-glow:      rgba(14, 165, 233, 0.20);
+$accent-soft:      rgba(14, 165, 233, 0.09);
+
+// ── NEW: Text hierarchy ───────────────────────────────────────────────
+$text-primary:   #dce9f5;
+$text-secondary: #7a9ab5;
+$text-muted:     #445a70;
+
+// ── Layout ────────────────────────────────────────────────────────────
+$sidebar-width:       26rem;
+$sidebar-width-col:   6.4rem;  // collapsed icon-only width
+$sidebar-bg:          #091525;
+
+// ── Radius ────────────────────────────────────────────────────────────
+$r-sm: 0.6rem;
+$r-md: 1rem;
+$r-lg: 1.4rem;
+$r-xl: 2rem;
+
+// ── Transitions ───────────────────────────────────────────────────────
+$t-fast:   0.15s ease;
+$t-base:   0.25s ease;
+$t-smooth: 0.35s cubic-bezier(0.4, 0, 0.2, 1);

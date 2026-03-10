@@ -1,0 +1,177 @@
+<section class="page">
+
+  <h1 class="page__heading">
+    Activity Log
+    <span>All searches and folder loads — last 30 days</span>
+  </h1>
+
+  <!-- Stats -->
+  <div class="al-stats" *ngIf="!loading">
+    <div class="al-stat">
+      <span class="al-stat__value">{{ entries.length }}</span>
+      <span class="al-stat__label">Total</span>
+    </div>
+    <div class="al-stat">
+      <i class="pi pi-search al-stat__icon"></i>
+      <span class="al-stat__value">{{ searchCount }}</span>
+      <span class="al-stat__label">Searches</span>
+    </div>
+    <div class="al-stat">
+      <i class="pi pi-folder-open al-stat__icon"></i>
+      <span class="al-stat__value">{{ syncCount }}</span>
+      <span class="al-stat__label">Folder Loads</span>
+    </div>
+    <div class="al-stat al-stat--warn" *ngIf="errorCount > 0">
+      <i class="pi pi-exclamation-triangle al-stat__icon"></i>
+      <span class="al-stat__value">{{ errorCount }}</span>
+      <span class="al-stat__label">With Errors</span>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="al-toolbar" *ngIf="!loading">
+    <div class="al-filters">
+      <button class="al-filter-btn" [class.active]="typeFilter==='all'" (click)="setFilter('all')">All</button>
+      <button class="al-filter-btn" [class.active]="typeFilter==='search'" (click)="setFilter('search')">
+        <i class="pi pi-search"></i> Searches
+      </button>
+      <button class="al-filter-btn" [class.active]="typeFilter==='sync'" (click)="setFilter('sync')">
+        <i class="pi pi-folder-open"></i> Folder Loads
+      </button>
+    </div>
+    <button class="al-refresh-btn" (click)="load()">
+      <i class="pi pi-refresh"></i> Refresh
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="al-loading" *ngIf="loading">
+    <p-progressSpinner strokeWidth="3" />
+    <span>Loading activity log…</span>
+  </div>
+
+  <!-- Empty -->
+  <div class="al-empty" *ngIf="!loading && filtered.length === 0">
+    <i class="pi pi-history"></i>
+    <p>No activity recorded yet</p>
+    <span>Your searches and folder loads will appear here automatically</span>
+  </div>
+
+  <!-- List -->
+  <div class="al-list" *ngIf="!loading && filtered.length > 0">
+
+    <div class="al-entry" *ngFor="let entry of filtered" [class.al-entry--expanded]="isExpanded(entry.id)"
+      [class.al-entry--error]="entry.status==='error'" [class.al-entry--partial]="entry.status==='partial'">
+
+      <!-- Row header -->
+      <div class="al-entry__row" (click)="toggleExpand(entry.id)">
+
+        <div class="al-entry__type" [class.al-entry__type--search]="entry.type==='search'"
+          [class.al-entry__type--sync]="entry.type==='sync'">
+          <i [class]="'pi ' + (entry.type==='search' ? 'pi-search' : 'pi-folder-open')"></i>
+          {{ entry.type === 'search' ? 'Search' : 'Folder Load' }}
+        </div>
+
+        <div class="al-entry__main">
+          <span class="al-entry__title">
+            <ng-container *ngIf="entry.type==='search'">{{ fileName(entry.query_image || '') }}</ng-container>
+            <ng-container *ngIf="entry.type==='sync'">{{ shortPath(entry.folder) }}</ng-container>
+          </span>
+          <span class="al-entry__folder">{{ shortPath(entry.folder) }}</span>
+        </div>
+
+        <div class="al-entry__chips">
+          <span class="al-chip al-chip--green" *ngIf="entry.type==='search' && entry.result_count > 0">
+            <i class="pi pi-images"></i> {{ entry.result_count }} found
+          </span>
+          <span class="al-chip al-chip--green" *ngIf="entry.type==='sync' && entry.indexed_count > 0">
+            <i class="pi pi-check"></i> {{ entry.indexed_count }} indexed
+          </span>
+          <span class="al-chip al-chip--red" *ngIf="entry.error_count > 0">
+            <i class="pi pi-times-circle"></i> {{ entry.error_count }} error{{ entry.error_count !== 1 ? 's' : '' }}
+          </span>
+          <span class="al-chip al-chip--neutral">
+            <i class="pi pi-clock"></i> {{ formatDuration(entry.duration_sec) }}
+          </span>
+        </div>
+
+        <span class="al-entry__time">{{ entry.timestamp | date:'dd MMM, HH:mm' }}</span>
+
+        <i class="al-entry__chevron pi" [class.pi-chevron-down]="!isExpanded(entry.id)"
+          [class.pi-chevron-up]="isExpanded(entry.id)"></i>
+
+      </div>
+
+      <!-- Detail panel -->
+      <div class="al-detail" *ngIf="isExpanded(entry.id)">
+
+        <div class="al-meta">
+          <div class="al-meta__row" *ngIf="entry.type==='search' && entry.query_image">
+            <span class="al-meta__label">Query image</span>
+            <code class="al-meta__value">{{ entry.query_image }}</code>
+          </div>
+          <div class="al-meta__row">
+            <span class="al-meta__label">Folder</span>
+            <code class="al-meta__value">{{ entry.folder }}</code>
+          </div>
+          <div class="al-meta__row">
+            <span class="al-meta__label">Timestamp</span>
+            <span class="al-meta__value">{{ entry.timestamp | date:'dd MMM yyyy, HH:mm:ss' }} UTC</span>
+          </div>
+          <div class="al-meta__row">
+            <span class="al-meta__label">Duration</span>
+            <span class="al-meta__value">{{ formatDuration(entry.duration_sec) }}</span>
+          </div>
+          <div class="al-meta__row">
+            <span class="al-meta__label">Status</span>
+            <p-tag [severity]="statusSeverity(entry.status)" [value]="entry.status | titlecase" />
+          </div>
+        </div>
+
+        <!-- Search results -->
+        <ng-container *ngIf="entry.type==='search'">
+          <div class="al-section-header">
+            <i class="pi pi-images"></i> Similar images found
+            <span class="al-section-header__count">{{ entry.results.length }}</span>
+          </div>
+          <div class="al-results">
+            <div class="al-result" *ngFor="let r of entry.results">
+              <span class="al-result__rank">#{{ r.rank }}</span>
+              <code class="al-result__path">{{ r.path }}</code>
+              <span class="al-result__score" [class.al-result__score--high]="r.similarity >= 0.8"
+                [class.al-result__score--mid]="r.similarity >= 0.5 && r.similarity < 0.8"
+                [class.al-result__score--low]="r.similarity < 0.5">
+                {{ (r.similarity * 100) | number:'1.1-1' }}%
+              </span>
+            </div>
+          </div>
+        </ng-container>
+
+        <div class="al-no-results" *ngIf="entry.type==='search' && entry.result_count===0 && entry.error_count===0">
+          <i class="pi pi-info-circle"></i> No similar images found for this query.
+        </div>
+
+        <!-- Errors -->
+        <!-- <ng-container *ngIf="entry.errors?.length > 0">
+          <div class="al-section-header al-section-header--error">
+            <i class="pi pi-exclamation-triangle"></i> Errors
+            <span class="al-section-header__count">{{ entry.errors.length }}</span>
+          </div>
+          <div class="al-errors">
+            <div class="al-error" *ngFor="let e of entry.errors">
+              <i class="pi pi-times-circle al-error__icon"></i>
+              <div class="al-error__body">
+                <code class="al-error__file">{{ fileName(e.file) }}</code>
+                <span class="al-error__reason">{{ e.reason }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container> -->
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>

@@ -1,24 +1,24 @@
+// ═══════════════════════════════════════════════════════════════════════
+// PAGE LAYOUT
+// ═══════════════════════════════════════════════════════════════════════
+
 .page {
     max-width: 100%;
-    color: $color-black;
 
     &__heading {
         font-size: 2.4rem;
         font-weight: 700;
         margin-bottom: 2rem;
-        color: $color-navy-600;
+        color: $text-primary;
+        letter-spacing: -0.01em;
 
         span {
             display: block;
             font-size: 1.3rem;
             font-weight: 400;
-            color: $color-gray-600;
-            margin-top: 0.4rem;
+            color: $text-secondary;
+            margin-top: 0.3rem;
+            letter-spacing: 0;
         }
     }
 }
-
-    .p-card {
-        background: $color-navy-600 !important;
-        border: 1px solid $color-gray-700 !important;
-    }

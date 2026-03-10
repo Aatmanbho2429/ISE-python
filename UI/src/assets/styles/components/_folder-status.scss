@@ -1,0 +1,120 @@
+// ═══════════════════════════════════════════════════════════════════════
+// FOLDER STATUS PAGE
+// ═══════════════════════════════════════════════════════════════════════
+
+.folder-status {
+    width: 100%;
+    padding: 1.6rem;
+
+    &__spinner {
+        display: flex;
+        justify-content: center;
+        padding: 4rem 0;
+    }
+
+    &__empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.8rem;
+        padding: 4rem 0;
+        color: $text-muted;
+
+        i { font-size: 2.8rem; color: $text-muted; }
+        p { font-size: 1.3rem; margin: 0; }
+    }
+}
+
+// ── Layout ────────────────────────────────────────────────────────────
+.folder-status-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+}
+
+// ── Panel ─────────────────────────────────────────────────────────────
+.folder-panel {
+    background: $surface-raised;
+    border: 1px solid $surface-border;
+    border-radius: $r-lg;
+    padding: 1.6rem 2rem;
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.4rem;
+    }
+
+    &__title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: $text-primary;
+        margin: 0;
+    }
+}
+
+// ── Tree overrides ────────────────────────────────────────────────────
+::ng-deep .folder-status__tree {
+    border: none !important;
+    background: transparent !important;
+
+    .p-tree-node-content {
+        padding: 0.4rem 0.6rem !important;
+        border-radius: $r-sm;
+        transition: background $t-fast;
+
+        &:hover { background: $surface-hover !important; }
+    }
+
+    .p-tree-node-label { width: 100%; }
+}
+
+// ── Folder row ────────────────────────────────────────────────────────
+.tree-folder {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.4rem 0;
+
+    &__name {
+        font-weight: 600;
+        font-size: 1.3rem;
+        color: $text-primary;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__counts {
+        font-size: 1.2rem;
+        color: $text-secondary;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    &__not-loaded {
+        color: $color-validate;
+        font-weight: 600;
+    }
+}
+
+// ── File row ──────────────────────────────────────────────────────────
+.tree-file {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    padding: 0.2rem 0;
+
+    &__name {
+        font-size: 1.2rem;
+        color: $text-secondary;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

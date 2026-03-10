@@ -1,0 +1,173 @@
+// ═══════════════════════════════════════════════════════════════════════
+// PROGRESS BAR — floating toast widget
+// ═══════════════════════════════════════════════════════════════════════
+
+// Full-screen blocking overlay (prevents clicks while active)
+.ise-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    cursor: not-allowed;
+    pointer-events: all;
+}
+
+// Floating progress card
+.ise-progress {
+    position: fixed;
+    bottom: 2.8rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 44rem;
+    max-width: calc(100vw - 4rem);
+
+    background: $surface-raised;
+    border: 1px solid rgba($accent, 0.22);
+    border-radius: $r-lg;
+    padding: 1.6rem 2rem 1.2rem;
+    box-shadow:
+        0 8px 40px rgba(0,0,0,0.45),
+        0 0 0 1px rgba($accent, 0.08);
+    pointer-events: none;
+}
+
+// ── Header row ────────────────────────────────────────────────────────
+.ise-progress__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.ise-progress__left {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.ise-progress__phase {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: $text-primary;
+}
+
+.ise-progress__percent {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: $accent;
+    font-family: "Courier New", monospace;
+}
+
+// ── Spinner ───────────────────────────────────────────────────────────
+.ise-spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid rgba($accent, 0.2);
+    border-top-color: $accent;
+    border-radius: 50%;
+    animation: ise-spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes ise-spin { to { transform: rotate(360deg); } }
+
+// ── Track + fill ──────────────────────────────────────────────────────
+.ise-progress__track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.ise-progress__fill {
+    height: 100%;
+    background: $accent;
+    border-radius: 999px;
+    transition: width 0.35s ease;
+    box-shadow: 0 0 8px rgba($accent, 0.5);
+
+    &--done {
+        background: $color-green;
+        box-shadow: 0 0 8px rgba($color-green, 0.5);
+    }
+}
+
+// ── ETA / elapsed row ────────────────────────────────────────────────
+.ise-progress__timing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.6rem;
+}
+
+.ise-progress__eta {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $accent;
+}
+
+.ise-progress__elapsed {
+    font-size: 1rem;
+    color: $text-muted;
+}
+
+// ── Footer row ────────────────────────────────────────────────────────
+.ise-progress__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.6rem;
+}
+
+.ise-progress__file {
+    font-size: 1rem;
+    color: $text-secondary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 65%;
+}
+
+.ise-progress__counts {
+    font-size: 1rem;
+    color: $text-muted;
+    white-space: nowrap;
+}
+
+.ise-progress__errors {
+    color: $color-validate;
+    font-weight: 600;
+}
+
+// ── File type breakdown ───────────────────────────────────────────────
+.ise-progress__filetypes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.2rem;
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid $surface-border;
+}
+
+.ise-progress__filetype {
+    display: flex;
+    align-items: baseline;
+    gap: 0.2rem;
+    font-size: 1rem;
+}
+
+.ise-progress__filetype-done  { font-weight: 700; color: $accent; }
+.ise-progress__filetype-sep   { color: $text-muted; }
+.ise-progress__filetype-total { color: $text-muted; }
+.ise-progress__filetype-ext   {
+    margin-left: 0.3rem;
+    font-weight: 600;
+    color: $text-secondary;
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}

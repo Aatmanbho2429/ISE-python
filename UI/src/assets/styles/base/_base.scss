@@ -1,3 +1,7 @@
+// ═══════════════════════════════════════════════════════════════════════
+// BASE — reset · typography · shell · global component overrides
+// ═══════════════════════════════════════════════════════════════════════
+
 *,
 *::after,
 *::before {
@@ -6,86 +10,173 @@
     box-sizing: inherit;
 }
 
-html {
-    font-size: 62.5%;
-}
+html { font-size: 62.5%; }
 
 body {
     box-sizing: border-box;
     font-family: "Roboto", sans-serif;
     font-weight: 400;
     line-height: 1.7;
-    background-color: $color-gray-50;
-    color: $color-gray-400;
+    background-color: $surface-bg;
+    color: $text-primary;
 }
 
-html,
-body {
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
 }
 
+// ── App shell ─────────────────────────────────────────────────────────
 .app-shell {
     display: grid;
-    grid-template-columns: 26rem 1fr;
+    grid-template-columns: $sidebar-width 1fr;
     height: 100vh;
     overflow: hidden;
-    background-color: $color-gray-50;
-
-    transition: grid-template-columns 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: $surface-bg;
+    transition: grid-template-columns $t-smooth;
 
     &.sidebar-collapsed {
-        grid-template-columns: 7rem 1fr;
+        grid-template-columns: $sidebar-width-col 1fr;
     }
 }
 
 .main-area {
     display: flex;
     flex-direction: column;
-    background-color: $color-gray-100;
     min-width: 0;
     height: 100vh;
+    background-color: $surface-bg;
 }
 
 .content {
     flex: 1;
     overflow-y: auto;
-    padding: 2rem;
-    overflow-y: auto;
-    background-color: $color-white;
-    color:$color-black;
+    padding: 2.4rem 2.8rem;
+    background-color: $surface-bg;
+    color: $text-primary;
 
+    // Custom scrollbar
+    scrollbar-width: thin;
+    scrollbar-color: rgba($accent, 0.28) transparent;
 
-    scrollbar-width: thin; /* Firefox */
-  scrollbar-color: rgba($color-gray-600, 0.6) transparent;
-
-  &::-webkit-scrollbar {
-    width: 10px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-    margin: 6px 0;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-      180deg,
-      rgba($color-gray-600, 0.7),
-      rgba($color-gray-700, 0.9)
-    );
-    border-radius: 8px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-    transition: background 0.2s ease;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-      180deg,
-      rgba($color-diamond, 0.8),
-      rgba($color-diamond, 0.6)
-    );
-  }
+    &::-webkit-scrollbar { width: 5px; }
+    &::-webkit-scrollbar-track { background: transparent; margin: 6px 0; }
+    &::-webkit-scrollbar-thumb {
+        background: rgba($accent, 0.28);
+        border-radius: 999px;
+        transition: background $t-base;
+    }
+    &::-webkit-scrollbar-thumb:hover { background: rgba($accent, 0.5); }
 }
+
+// ── PrimeNG — global card override ───────────────────────────────────
+.p-card {
+    background: $surface-raised !important;
+    border: 1px solid $surface-border !important;
+    border-radius: $r-lg !important;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.4) !important;
+    color: $text-primary !important;
+
+    .p-card-body { padding: 2rem 2.4rem !important; }
+}
+
+// ── PrimeNG — stepper titles ──────────────────────────────────────────
+.p-step-title {
+    color: $text-secondary !important;
+    font-size: 1.3rem !important;
+}
+.p-step-active .p-step-title {
+    color: $accent !important;
+    font-weight: 600 !important;
+}
+
+// ── PrimeNG — inputs ──────────────────────────────────────────────────
+.p-inputtext {
+    background: $surface-overlay !important;
+    border: 1px solid $surface-border !important;
+    color: $text-primary !important;
+    border-radius: $r-sm !important;
+    font-size: 1.3rem !important;
+    padding: 0.8rem 1.2rem !important;
+    transition: border-color $t-fast, box-shadow $t-fast !important;
+
+    &:focus {
+        outline: none !important;
+        border-color: rgba($accent, 0.5) !important;
+        box-shadow: 0 0 0 3px rgba($accent, 0.12) !important;
+    }
+    &:disabled { opacity: 0.55 !important; cursor: default !important; }
+}
+
+// ── PrimeNG — select ──────────────────────────────────────────────────
+.p-select {
+    background: $surface-overlay !important;
+    border: 1px solid $surface-border !important;
+    border-radius: $r-sm !important;
+    color: $text-primary !important;
+}
+.p-select-overlay {
+    background: $surface-raised !important;
+    border: 1px solid $surface-border !important;
+    border-radius: $r-sm !important;
+    color: $text-primary !important;
+}
+.p-select-option {
+    color: $text-primary !important;
+    &:hover { background: $surface-hover !important; }
+    &.p-select-option-selected { background: $accent-soft !important; color: $accent !important; }
+}
+
+// ── PrimeNG — buttons ─────────────────────────────────────────────────
+.p-button {
+    border-radius: $r-sm !important;
+    font-size: 1.3rem !important;
+    font-weight: 500 !important;
+    transition: background $t-fast, transform $t-fast, box-shadow $t-fast !important;
+
+    &:not(:disabled):active { transform: translateY(1px) !important; }
+}
+
+// "contrast" = our primary teal CTA
+.p-button-contrast,
+.p-button[severity="contrast"] {
+    background: $accent !important;
+    border-color: $accent !important;
+    color: #fff !important;
+
+    &:hover:not(:disabled) {
+        background: $accent-hover !important;
+        border-color: $accent-hover !important;
+        box-shadow: 0 0 0 3px rgba($accent, 0.22) !important;
+    }
+}
+
+// "secondary" = muted outline
+.p-button-secondary,
+.p-button[severity="secondary"] {
+    background: transparent !important;
+    border: 1px solid $surface-border !important;
+    color: $text-secondary !important;
+
+    &:hover:not(:disabled) {
+        background: $surface-hover !important;
+        color: $text-primary !important;
+    }
+}
+
+// ── PrimeNG — tag ─────────────────────────────────────────────────────
+.p-tag { font-size: 1.1rem !important; border-radius: 9999px !important; }
+
+// ── PrimeNG — tree ────────────────────────────────────────────────────
+.p-tree {
+    background: transparent !important;
+    border: none !important;
+    color: $text-primary !important;
+    padding: 0 !important;
+}
+.p-tree-node-content {
+    border-radius: $r-sm !important;
+    &:hover { background: $surface-hover !important; }
+}
+.p-tree-node-label { width: 100% !important; }

@@ -114,7 +114,7 @@ export class ImageSearch implements OnInit {
       console.log("Raw response from Search:", response);
       const parsed = typeof response === 'string' ? JSON.parse(response) : response;
 
-      this.ngZone.run(() => {
+      this.ngZone.run(async () => {
         if (!parsed.status) {
           this.systemService.showError(parsed.message || "Search failed");
           return;
@@ -127,6 +127,7 @@ export class ImageSearch implements OnInit {
             path: this.fixPath(r.path),
             score: r.similarity
           }));
+          this.loadThumbnails();
           this.systemService.showSuccess(`${resultsArray.length} similar images found.`);
         } else {
           this.results = [];

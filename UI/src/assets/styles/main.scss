@@ -4,9 +4,12 @@
 @import "./base/base";
 
 @import "./components/image-card";
+@import "./components/progress-bar";
 @import "./components/invalid-license-card";
+@import "./components/folder-status";
 
 @import "./layout/page";
 @import "./layout/sidebar";
 
 @import "./pages/image-search";
+@import "./pages/activity-log";

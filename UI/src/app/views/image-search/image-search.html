@@ -1,131 +1,186 @@
-<!-- <div class="loading-box" *ngIf="isSearching">
-    <p-progressSpinner></p-progressSpinner>
-</div> -->
 <app-progress-bar></app-progress-bar>
+
 <section class="page">
+
     <h1 class="page__heading">{{ "lblISETitle" | translate }}
         <span>{{ "lblISEDescription" | translate }}</span>
     </h1>
+
+    <!-- ── Stepper card ───────────────────────────────────────────────── -->
     <p-card class="page__card">
-        <p-stepper [value]="currentStep" class="basis-[50rem]" [linear]="true">
+        <p-stepper [value]="currentStep" [linear]="true">
+
             <p-step-list>
                 <p-step [value]="1">{{ "lblSelectSearchImage" | translate }}</p-step>
                 <p-step [value]="2">{{ "lblChooseTargetFolder" | translate }}</p-step>
                 <p-step [value]="3">{{ "lblSearch" | translate }}</p-step>
             </p-step-list>
+
             <p-step-panels>
+
+                <!-- ── Step 1: Select Image ─────────────────────────── -->
                 <p-step-panel [value]="1">
-                    <ng-template #content let-activateCallback="goToStep">
-                        <!-- <div class="query-form">
-                            <div class="query-form__img-box">
-                                <p class="query-form__upload-text" *ngIf="!queryString">{{ "lblNoImgSelected" | translate }}</p>
-                                <img class="query-form__img" src="queryString" alt="" *ngIf="queryString">
-                                 <input pInputText id="folder-path" class="folder-form__txt-box" [disabled]="true"
-                                [(ngModel)]="queryString" />
-                            </div>
-                            <p-button label="Select Image" class="w-full query-form__btn" (click)="selectImagePath()" />
-                            <p-button id="select_image" label="Select Image" (click)="selectImagePath()" />
-                            <div class="d-flex flex-row justify-content-end mt-3 w-60 query-form__footer">
-                                <p-button label="Next" icon="pi pi-arrow-right" iconPos="right"
-                                    (onClick)="goToStep(2,1)" *ngIf="queryString" />
-                            </div>
-                        </div> -->
-                        <div class="query-form">
-                            <label for="query-path" class="query-form__lbl">{{ "lblSelectImgToSearch" | translate
-                                }}</label>
-                            <input pInputText id="query-path" class="query-form__txt-box" [disabled]="true"
-                                [(ngModel)]="queryString" />
-                            <p-button label="Select Image" severity="contrast" class="w-full query-form__upload-btn"
-                                (click)="selectImagePath()" />
-                            <div class="flex pt-6 justify-between query-form__footer">
-                                <p-button label="Next" icon="pi pi-arrow-right" severity="contrast" iconPos="right"
-                                    (onClick)="goToStep(2,1)" *ngIf="queryString" />
-                            </div>
-                        </div>
+                    <ng-template #content>
+                        <div class="step-form">
 
+                            <label for="query-path" class="step-form__lbl">
+                                {{ "lblSelectImgToSearch" | translate }}
+                            </label>
+                            <input
+                                pInputText
+                                id="query-path"
+                                class="step-form__input"
+                                [disabled]="true"
+                                [(ngModel)]="queryString"
+                                placeholder="No image selected" />
+
+                            <div class="step-form__action-btn">
+                                <p-button
+                                    label="Select Image"
+                                    severity="contrast"
+                                    icon="pi pi-image"
+                                    (click)="selectImagePath()" />
+                            </div>
+
+                            <div class="step-form__footer step-form__footer--end">
+                                <p-button
+                                    *ngIf="queryString"
+                                    label="Next"
+                                    icon="pi pi-arrow-right"
+                                    severity="contrast"
+                                    iconPos="right"
+                                    (onClick)="goToStep(2, 1)" />
+                            </div>
+
+                        </div>
                     </ng-template>
                 </p-step-panel>
 
+                <!-- ── Step 2: Select Folder ───────────────────────── -->
                 <p-step-panel [value]="2">
-                    <ng-template #content let-activateCallback="goToStep">
-                        <div class="folder-form">
-                            <label for="folder-path" class="folder-form__lbl">{{ "lblSelectFolder" | translate
-                                }}</label>
-                            <input pInputText id="folder-path" class="folder-form__txt-box" [disabled]="true"
-                                [(ngModel)]="folderPath" />
-                            <p-button label="Select Folder" class="folder-form__upload-btn" severity="contrast"
-                                (click)="selectFolderPath()" />
-                            <div class="flex pt-6 justify-between folder-form__footer">
-                                <p-button class="mr-3" label="Back" severity="secondary" icon="pi pi-arrow-left"
-                                    (onClick)="goToStep(1,2)" />
-                                <p-button label="Next" icon="pi pi-arrow-right" severity="contrast" iconPos="right"
-                                    (onClick)="goToStep(3,2)" *ngIf="folderPath" />
-                            </div>
-                        </div>
+                    <ng-template #content>
+                        <div class="step-form">
 
+                            <label for="folder-path" class="step-form__lbl">
+                                {{ "lblSelectFolder" | translate }}
+                            </label>
+                            <input
+                                pInputText
+                                id="folder-path"
+                                class="step-form__input"
+                                [disabled]="true"
+                                [(ngModel)]="folderPath"
+                                placeholder="No folder selected" />
+
+                            <div class="step-form__action-btn">
+                                <p-button
+                                    label="Select Folder"
+                                    severity="contrast"
+                                    icon="pi pi-folder-open"
+                                    (click)="selectFolderPath()" />
+                            </div>
+
+                            <div class="step-form__footer">
+                                <p-button
+                                    label="Back"
+                                    severity="secondary"
+                                    icon="pi pi-arrow-left"
+                                    (onClick)="goToStep(1, 2)" />
+                                <p-button
+                                    *ngIf="folderPath"
+                                    label="Next"
+                                    icon="pi pi-arrow-right"
+                                    severity="contrast"
+                                    iconPos="right"
+                                    (onClick)="goToStep(3, 2)" />
+                            </div>
+
+                        </div>
                     </ng-template>
                 </p-step-panel>
 
+                <!-- ── Step 3: Search ──────────────────────────────── -->
                 <p-step-panel [value]="3">
-                    <ng-template #content let-activateCallback="goToStep">
-                        <div class="search-form">
+                    <ng-template #content>
+                        <div class="step-form">
 
-                            <label class="search-form__lbl">{{ "lblSelectedImg" | translate }}</label>
-                            <input pInputText id="folder-path" class="search-form__txt-box" [disabled]="true"
+                            <label class="step-form__lbl">
+                                {{ "lblSelectedImg" | translate }}
+                            </label>
+                            <input
+                                pInputText
+                                class="step-form__input"
+                                [disabled]="true"
                                 [(ngModel)]="queryString" />
-                            <!-- <div class="search-form__img-box">
-                                <p class="search-form__upload-text" *ngIf="!queryString">{{ "lblNoImgSelected" | translate }}</p>
-                                <img class="search-form__img" [src]="queryString" alt="" *ngIf="queryString">
 
-                            </div> -->
-                            <label class="search-form__lbl">{{ "lblNoOfSearchResult" | translate }}</label>
-                            <p-select [options]="numberOFResults" styleClass="search-form__select" optionValue="code"
-                                optionLabel="name" [(ngModel)]="selectedResultNumber" optionLabel="name"
-                                placeholder="Select number of similar images you want to search"
-                                class="w-full md:w-56" />
-                            <label class="search-form__lbl">{{ "lblSelectedPath" | translate }}</label>
-                            <input pInputText id="folder-path" class="search-form__txt-box" [disabled]="true"
+                            <label class="step-form__lbl">
+                                {{ "lblNoOfSearchResult" | translate }}
+                            </label>
+                            <p-select
+                                class="step-form__select"
+                                [options]="numberOFResults"
+                                optionValue="code"
+                                optionLabel="name"
+                                [(ngModel)]="selectedResultNumber"
+                                placeholder="Select number of results" />
+
+                            <label class="step-form__lbl">
+                                {{ "lblSelectedPath" | translate }}
+                            </label>
+                            <input
+                                pInputText
+                                class="step-form__input"
+                                [disabled]="true"
                                 [(ngModel)]="folderPath" />
-                            <p-button label="Search" severity="contrast" class="search-form__search-btn" (click)="addFolderToVectroDb()"
-                                *ngIf="queryString && folderPath" />
-                            <div class="flex pt-6 justify-between search-form__footer">
-                                <p-button label="Back" severity="secondary" icon="pi pi-arrow-left" iconPos="right"
-                                    (onClick)="goToStep(2,3)" />
+
+                            <div class="step-form__action-btn" *ngIf="queryString && folderPath">
+                                <p-button
+                                    label="Search"
+                                    severity="contrast"
+                                    icon="pi pi-search"
+                                    (click)="addFolderToVectroDb()" />
+                            </div>
+
+                            <div class="step-form__footer">
+                                <p-button
+                                    label="Back"
+                                    severity="secondary"
+                                    icon="pi pi-arrow-left"
+                                    (onClick)="goToStep(2, 3)" />
                             </div>
 
                         </div>
                     </ng-template>
                 </p-step-panel>
+
             </p-step-panels>
         </p-stepper>
     </p-card>
-    <p-card class="page__card search-card mt-5" *ngIf="results.length > 0">
+
+    <!-- ── Search results ─────────────────────────────────────────────── -->
+    <p-card class="page__card search-card" *ngIf="results.length > 0">
         <h2 class="search-card__heading">{{ "lblSearchResult" | translate }}</h2>
         <div class="search-card__img-container">
-            <!-- <div class="image-card" *ngFor="let item of results">
-                <div class="image-card__img-container">
-                    <img class="image-card__img" [src]="item.path" alt="can't load image">
-                </div>
-                <div class="image-card__footer">
-                    <caption class="image-card__path">Source Path:- {{item.path}}</caption>
-                    <caption class="image-card__score">Match Confidence:- {{ (item.score * 100) | number:'1.2-2' }}%</caption>
-                </div>
 
-            </div> -->
             <div class="image-card" *ngFor="let item of results">
                 <div class="image-card__img-container">
-                    <img class="image-card__img" [src]="item.thumbnail"
-                    [alt]="item.path" alt="can't load image">
+                    <img class="image-card__img"
+                        [src]="item.thumbnail"
+                        [alt]="item.path" />
                 </div>
-
                 <div class="image-card__footer">
                     <span class="image-card__label">{{ "lblSourcePath" | translate }}</span>
                     <span class="image-card__path">
-                        {{item.path}} <p-button label="Open" class="image-card__path-btn" severity="contrast" (click)="openFilePath(item.path)"/>
+                        {{ item.path }}
+                        <p-button
+                            label="Open"
+                            class="image-card__path-btn"
+                            severity="contrast"
+                            size="small"
+                            (click)="openFilePath(item.path)" />
                     </span>
-
                     <span class="image-card__score">
-                        <span class="image-card__score-label">{{ "lblMatchConfidence" | translate }} </span>
+                        <span class="image-card__score-label">{{ "lblMatchConfidence" | translate }}</span>
                         <span class="image-card__score-value">{{ (item.score * 100) | number:'1.2-2' }}%</span>
                     </span>
                 </div>
@@ -133,4 +188,5 @@
 
         </div>
     </p-card>
+
 </section>

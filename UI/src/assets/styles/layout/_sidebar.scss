@@ -1,114 +1,189 @@
+// ═══════════════════════════════════════════════════════════════════════
+// SIDEBAR — supports SVG logo image
+// ═══════════════════════════════════════════════════════════════════════
+
 .sidebar {
-    background-color: $color-navy-700;
-    border-right: 1px solid $color-gray-800;
+    background: $sidebar-bg;
+    border-right: 1px solid $surface-border;
     display: flex;
     flex-direction: column;
     width: 100%;
     overflow: hidden;
     height: 100vh;
+    position: relative;
 
+    // Subtle teal accent line on the right edge
+    &::after {
+        content: '';
+        position: absolute;
+        top: 15%;
+        right: 0;
+        width: 1px;
+        height: 70%;
+        background: linear-gradient(180deg,
+            transparent 0%,
+            rgba($accent, 0.35) 30%,
+            rgba($accent, 0.35) 70%,
+            transparent 100%
+        );
+        pointer-events: none;
+    }
+
+    // ── Logo bar ───────────────────────────────────────────────────
     &__logo {
         height: 6.4rem;
-        padding: 0 1.6rem;
+        padding: 0 1.8rem;
         display: flex;
         align-items: center;
-        font-size: 1.6rem;
-        font-weight: 600;
-        color: $color-white;
-        background-color: $color-navy-600;
-        border-bottom: 1px solid $color-navy-800;
-        transition: padding 0.35s ease;
+        justify-content: flex-start;
+        gap: 0;
+        overflow: hidden;
+        border-bottom: 1px solid $surface-border;
+        background: rgba($accent, 0.05);
+        transition: padding $t-smooth, justify-content $t-smooth;
+        flex-shrink: 0;
+
+        // ── Full horizontal SVG logo ───────────────────────────
+        img {
+            height: 28px;
+            width: auto;
+            max-width: 16rem;      // prevents overflow in normal state
+            object-fit: contain;
+            display: block;
+            flex-shrink: 0;
+            transition:
+                opacity $t-base,
+                max-width $t-smooth,
+                transform $t-smooth;
+        }
+
+        // ── Collapsed icon mark ────────────────────────────────
+        // Small branded square shown only when sidebar is collapsed
+        &__icon {
+            display: none;
+            width: 3.2rem;
+            height: 3.2rem;
+            border-radius: 0.8rem;
+            background: linear-gradient(135deg, $accent 0%, $color-green-400 100%);
+            box-shadow: 0 0 12px rgba($accent, 0.4);
+            flex-shrink: 0;
+        }
     }
 }
 
+// ── Nav links ──────────────────────────────────────────────────────────
 .sidebar-nav {
     flex: 1;
-    padding: 1rem 1rem;
-    transition: padding 0.3s ease;
+    padding: 1.4rem 0.8rem;
+    transition: padding $t-smooth;
 
-    & ul {
+    ul {
         list-style: none;
         margin: 0;
         padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
     }
 
-    & li {
-        margin: 0.4rem 0;
-
+    li {
         &.active a {
-            background-color: rgba($color-navy-100, 0.15);
-            color: $color-white;
+            background: rgba($accent, 0.12);
+            color: $accent;
+            border-left-color: $accent;
+            i { color: $accent; }
         }
     }
 
-    & a {
+    a {
         display: flex;
         align-items: center;
         gap: 1.2rem;
-        padding: 1rem 1.6rem;
-        font-size: 1.4rem;
-        color: $color-gray-400;
+        padding: 1.1rem 1.4rem;
+        font-size: 1.35rem;
+        font-weight: 500;
+        color: $text-secondary;
         text-decoration: none;
-        border-radius: 0.6rem;
-
+        border-radius: $r-sm;
+        border-left: 2px solid transparent;
         transition:
-            background-color 0.2s ease,
-            color 0.2s ease,
-            padding 0.35s ease,
-            justify-content 0.35s ease;
+            background $t-base,
+            color $t-base,
+            border-color $t-base,
+            padding $t-smooth;
 
         &:hover {
-            background-color: $color-navy-800;
-            color: $color-gray-100;
+            background: $surface-hover;
+            color: $text-primary;
+            border-left-color: rgba($accent, 0.4);
         }
 
-        & i {
+        i {
             font-size: 1.6rem;
             min-width: 2rem;
-            transition: transform 0.35s ease;
+            color: $text-muted;
+            transition: color $t-base, transform $t-smooth;
         }
 
-        & .label {
+        .label {
             white-space: nowrap;
-            opacity: 1;
-            transform: translateX(0);
-            transition:
-                opacity 0.2s ease,
-                transform 0.35s ease;
+            transition: opacity $t-base, transform $t-smooth;
         }
     }
 }
 
+// ── Collapsed state ────────────────────────────────────────────────────
 .sidebar.collapsed {
+
     .sidebar__logo {
-        padding: 1rem;
-        font-size: 1rem;
+        padding: 0;
         justify-content: center;
+
+        // Shrink and hide the full logo
+        img {
+            max-width: 0;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-0.5rem);
+        }
+
+        // Show the small square icon instead
+        &__icon {
+            display: block;
+        }
     }
 
     .sidebar-nav {
-        padding: 1rem 0;
+        padding: 1.4rem 0.4rem;
 
         a {
             justify-content: center;
-            // padding: 1rem;
+            padding: 1.1rem 0;
+            border-left: none;
+        }
+
+        i {
+            min-width: unset;
+            transform: scale(1.1);
         }
 
         .label {
             opacity: 0;
-            transform: translateX(-1rem);
+            width: 0;
+            overflow: hidden;
             pointer-events: none;
-            display: none;
-        }
-
-        i {
-            transform: scale(1.1);
         }
     }
 }
 
+// ── Hamburger toggle ───────────────────────────────────────────────────
 .sidebar-toggle {
-    margin: 1rem;
+    margin: 0.8rem 1.2rem;
     align-self: flex-start;
-    color: $color-navy-900!important;
+    color: $text-secondary !important;
+    background: transparent !important;
+    border: none !important;
+    transition: color $t-base !important;
+
+    &:hover { color: $accent !important; }
 }

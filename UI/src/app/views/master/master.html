@@ -2,8 +2,13 @@
 
     <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
         <div class="sidebar__logo">
-            <span>{{ "lblISESearchEngine" | translate }}</span>
+            <!-- Full horizontal logo — visible when expanded -->
+            <img src="assets/images/visara-logo-horizontal.svg" alt="Visara" />
+
+            <!-- Small icon mark — visible when collapsed -->
+            <div class="sidebar__logo__icon"></div>
         </div>
+
         <nav class="sidebar-nav">
             <ul>
                 <li routerLinkActive="active">
@@ -16,6 +21,12 @@
                     <a routerLink="/loaded-data">
                         <i class="pi pi-folder-open"></i>
                         <span class="label">{{ "lblLoadedFoldersSidebar" | translate }}</span>
+                    </a>
+                </li>
+                <li routerLinkActive="active">
+                    <a routerLink="/activity-log">
+                        <i class="pi pi-history"></i>
+                        <span class="label">Activity Log</span>
                     </a>
                 </li>
                 <li routerLinkActive="active">
@@ -37,9 +48,8 @@
 
 </div>
 
-<!-- ── License Invalid Overlay — blocks all interaction ──────────────────── -->
+<!-- ── License Invalid Overlay ───────────────────────────────────────── -->
 <div class="license-overlay" *ngIf="isLicenseInvalid">
-
     <div class="license-card">
 
         <div class="license-card__icon">
@@ -47,15 +57,12 @@
         </div>
 
         <h3 class="license-card__heading">{{ "lblInvalidLicenseHeading" | translate }}</h3>
-
         <p class="license-card__message">{{ verifyLicenseResponse.message }}</p>
 
-        <!-- Error code badge -->
         <div class="license-card__code" *ngIf="verifyLicenseResponse.code">
             <span>Error {{ verifyLicenseResponse.code }}</span>
         </div>
 
-        <!-- Device ID — so user can send it to you for license generation -->
         <div class="license-card__device" *ngIf="deviceId">
             <span class="license-card__device-label">Your Device ID</span>
             <div class="license-card__device-id">
@@ -74,5 +81,4 @@
         </div>
 
     </div>
-
 </div>

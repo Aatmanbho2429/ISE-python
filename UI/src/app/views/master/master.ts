@@ -41,7 +41,7 @@ export class Master implements OnInit {
   async ngOnInit() {
     setTimeout(() => {
       this.validateLicense();
-    }, 100);
+    }, 1000);
   }
 
   async validateLicense() {

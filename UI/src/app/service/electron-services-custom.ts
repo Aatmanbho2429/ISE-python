@@ -68,6 +68,11 @@ export class ElectronServicesCustom {
   validateLicense(): Promise<string> {
     return (window as any).pywebview.api.validateLicense();
   }
+
+  async getActivityLog(): Promise<any[]> {
+    const raw = await (window as any).pywebview.api.get_activity_log();
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  }
 }
 
 declare global {

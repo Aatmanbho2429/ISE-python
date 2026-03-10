@@ -1,18 +1,19 @@
 import os
+import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
 from app.config import BATCH_SIZE, NUM_WORKERS
 from app.core import database as db
 from app.core import indexer
-from app.core.progress import set_progress, get_progress, increment_errors, increment_file_type, set_file_type_totals, reset
+from app.core.progress import (set_progress, increment_errors,
+                                increment_file_type, set_file_type_totals, reset)
 from app.core.embedder import Embedder
 from app.utils.file_utils import fast_hash, scan_images
 from app.utils.image_loader import preprocess_batch_parallel
 
 
 def _is_under(path: str, folder: str) -> bool:
-    """Returns True if path is inside folder (including subfolders)."""
     return os.path.normpath(path).startswith(os.path.normpath(folder) + os.sep)
 
 
@@ -21,11 +22,12 @@ def sync_folder(index, folder_path: str, response) -> None:
     current_files   = list(scan_images(folder_path))
     seen_hashes     = set()
     needs_embedding = []
+    t_start         = time.time()
 
     con = db.get_connection()
     db.cleanup_missing_in_folder(con, index, folder_path)
 
-    # ── Step 1: Hash all files in parallel ──────────────────────────────
+    # ── Step 1: Hash ──────────────────────────────────────────────────────
     set_progress(done=0, total=len(current_files), current="", phase="hashing", errors=0)
 
     def hash_one(path):
@@ -50,7 +52,7 @@ def sync_folder(index, folder_path: str, response) -> None:
         set_progress(done=hashed_done, current=os.path.basename(path))
 
         if err:
-            response.data["errors"].append({"file": path, "reason": 'error hashing file: ' + err})
+            response.data["errors"].append({"file": path, "reason": "error hashing file: " + err})
             continue
 
         seen_hashes.add(h)
@@ -74,12 +76,11 @@ def sync_folder(index, folder_path: str, response) -> None:
                 con.commit()
             needs_embedding.append((path, h, mtime))
 
-    # ── Step 2: Embed new/changed/copied files in batches ────────────────
+    # ── Step 2: Embed ─────────────────────────────────────────────────────
     total    = len(needs_embedding)
     done     = 0
     embedder = Embedder()
 
-    # Count files by extension and register with progress
     ext_counts = Counter(
         os.path.splitext(p)[1].lower().lstrip(".") for p, _, _ in needs_embedding
     )
@@ -107,8 +108,7 @@ def sync_folder(index, folder_path: str, response) -> None:
                 faiss_id = db.get_next_faiss_id(con)
                 indexer.add_embedding(index, emb, faiss_id)
                 db.insert_file(con, path, hash_lookup[path], faiss_id, mtime_lookup[path])
-                response.data["success"].append({"file": path, "reason": 'Passed embedding'})
-                # Increment per-extension counter after each successful embed
+                response.data["success"].append({"file": path, "reason": "Passed embedding"})
                 increment_file_type(os.path.splitext(path)[1])
             con.commit()
 
@@ -116,7 +116,7 @@ def sync_folder(index, folder_path: str, response) -> None:
         set_progress(done=done)
         print(f"[sync] {done}/{total} embedded", flush=True)
 
-    # ── Step 3: Remove files deleted from selected folder only ───────────
+    # ── Step 3: Remove deleted ────────────────────────────────────────────
     all_hashes     = db.get_folder_hashes(con, folder_path)
     deleted_hashes = all_hashes - seen_hashes
 
@@ -128,6 +128,18 @@ def sync_folder(index, folder_path: str, response) -> None:
             db.delete_file(con, path)
         indexer.remove_embeddings(index, faiss_ids_to_del)
         con.commit()
+
+    # ── Write activity log ─────────────────────────────────────────────────
+    try:
+        db.log_sync(
+            con           = con,
+            folder        = folder_path,
+            indexed_count = len(response.data["success"]),
+            errors        = response.data["errors"],
+            duration_sec  = time.time() - t_start,
+        )
+    except Exception as e:
+        print(f"[activity_log] write failed: {e}", flush=True)
 
     con.close()
     reset()

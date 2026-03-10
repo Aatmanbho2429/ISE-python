@@ -1,0 +1,395 @@
+// ═══════════════════════════════════════════════════════════════════════
+// ACTIVITY LOG PAGE
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Stats row ─────────────────────────────────────────────────────────
+.al-stats {
+    display: flex;
+    gap: 1.6rem;
+    margin-bottom: 2.4rem;
+    flex-wrap: wrap;
+}
+
+.al-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    background: $surface-raised;
+    border: 1px solid $surface-border;
+    border-radius: $r-md;
+    padding: 1.6rem 2.4rem;
+    min-width: 10rem;
+
+    &--warn {
+        border-color: rgba($color-validate, 0.3);
+        background: rgba($color-validate, 0.06);
+        .al-stat__value { color: $color-validate; }
+        .al-stat__icon  { color: $color-validate; }
+    }
+
+    &__icon { font-size: 1.4rem; color: $accent; margin-bottom: 0.2rem; }
+    &__value { font-size: 2.4rem; font-weight: 700; color: $text-primary; line-height: 1; }
+    &__label { font-size: 1.1rem; color: $text-muted; }
+}
+
+// ── Toolbar ───────────────────────────────────────────────────────────
+.al-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.6rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.al-filters { display: flex; gap: 0.6rem; }
+
+.al-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: $r-sm;
+    border: 1px solid $surface-border;
+    background: $surface-raised;
+    color: $text-secondary;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background $t-base, color $t-base, border-color $t-base;
+
+    &:hover { background: $surface-hover; color: $text-primary; }
+
+    &.active {
+        background: rgba($accent, 0.15);
+        border-color: rgba($accent, 0.5);
+        color: $accent;
+    }
+
+    i { font-size: 1.1rem; }
+}
+
+.al-refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: $r-sm;
+    border: 1px solid $surface-border;
+    background: transparent;
+    color: $text-muted;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color $t-base;
+    &:hover { color: $accent; }
+}
+
+// ── Loading / Empty ────────────────────────────────────────────────────
+.al-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.6rem;
+    padding: 6rem 0;
+    color: $text-muted;
+    font-size: 1.3rem;
+}
+
+.al-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 6rem 0;
+    color: $text-muted;
+
+    i    { font-size: 3.2rem; color: $text-muted; opacity: 0.5; }
+    p    { font-size: 1.5rem; color: $text-secondary; margin: 0; }
+    span { font-size: 1.2rem; }
+}
+
+// ── Entry list ─────────────────────────────────────────────────────────
+.al-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.al-entry {
+    background: $surface-raised;
+    border: 1px solid $surface-border;
+    border-radius: $r-md;
+    overflow: hidden;
+    transition: border-color $t-base;
+
+    &:hover { border-color: rgba($accent, 0.3); }
+
+    &--error   { border-left: 3px solid $color-validate; }
+    &--partial { border-left: 3px solid #f59e0b; }
+    &--expanded { border-color: rgba($accent, 0.4); }
+
+    // ── Row ───────────────────────────────────────────────────────
+    &__row {
+        display: flex;
+        align-items: center;
+        gap: 1.2rem;
+        padding: 1.4rem 1.8rem;
+        cursor: pointer;
+        user-select: none;
+        transition: background $t-base;
+        flex-wrap: wrap;
+
+        &:hover { background: $surface-hover; }
+    }
+
+    // ── Type pill ─────────────────────────────────────────────────
+    &__type {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 1rem;
+        border-radius: $r-sm;
+        font-size: 1.1rem;
+        font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+
+        &--search { background: rgba($accent, 0.12);      color: $accent; }
+        &--sync   { background: rgba($color-green, 0.12); color: $color-green; }
+
+        i { font-size: 1rem; }
+    }
+
+    // ── Title + folder ────────────────────────────────────────────
+    &__main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        min-width: 0;
+    }
+
+    &__title {
+        font-size: 1.3rem;
+        font-weight: 500;
+        color: $text-primary;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__folder {
+        font-size: 1.1rem;
+        color: $text-muted;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    // ── Chips ─────────────────────────────────────────────────────
+    &__chips {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+    }
+
+    // ── Timestamp ─────────────────────────────────────────────────
+    &__time {
+        font-size: 1.1rem;
+        color: $text-muted;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    // ── Chevron ───────────────────────────────────────────────────
+    &__chevron {
+        font-size: 1.1rem;
+        color: $text-muted;
+        flex-shrink: 0;
+        transition: transform $t-base;
+    }
+}
+
+// ── Chips ─────────────────────────────────────────────────────────────
+.al-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.9rem;
+    border-radius: 2rem;
+    font-size: 1.1rem;
+    font-weight: 500;
+    white-space: nowrap;
+
+    i { font-size: 1rem; }
+
+    &--green   { background: rgba($color-green, 0.12);    color: $color-green; }
+    &--red     { background: rgba($color-validate, 0.12); color: $color-validate; }
+    &--neutral { background: rgba(255,255,255,0.06);       color: $text-muted; }
+}
+
+// ── Detail panel ──────────────────────────────────────────────────────
+.al-detail {
+    border-top: 1px solid $surface-border;
+    padding: 2rem 2.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    background: $surface-overlay;
+}
+
+// ── Meta table ────────────────────────────────────────────────────────
+.al-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+
+    &__row {
+        display: flex;
+        gap: 1.6rem;
+        align-items: baseline;
+        flex-wrap: wrap;
+    }
+
+    &__label {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: $text-muted;
+        min-width: 10rem;
+        flex-shrink: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    &__value {
+        font-size: 1.2rem;
+        color: $text-secondary;
+        word-break: break-all;
+
+        &:is(code) {
+            font-family: monospace;
+            background: $surface-bg;
+            padding: 0.2rem 0.6rem;
+            border-radius: $r-sm;
+            color: $accent;
+            font-size: 1.1rem;
+        }
+    }
+}
+
+// ── Section headers ────────────────────────────────────────────────────
+.al-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: $text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.4rem;
+
+    i { color: $accent; }
+
+    &--error i { color: $color-validate; }
+
+    &__count {
+        background: $surface-border;
+        color: $text-muted;
+        font-size: 1rem;
+        padding: 0.1rem 0.7rem;
+        border-radius: 2rem;
+    }
+}
+
+// ── Results list ───────────────────────────────────────────────────────
+.al-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 28rem;
+    overflow-y: auto;
+}
+
+.al-result {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 0.8rem 1.2rem;
+    background: $surface-bg;
+    border-radius: $r-sm;
+    border: 1px solid $surface-border;
+
+    &__rank {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: $text-muted;
+        min-width: 2.4rem;
+        flex-shrink: 0;
+    }
+
+    &__path {
+        flex: 1;
+        font-family: monospace;
+        font-size: 1.1rem;
+        color: $text-secondary;
+        word-break: break-all;
+    }
+
+    &__score {
+        font-size: 1.2rem;
+        font-weight: 700;
+        flex-shrink: 0;
+        min-width: 5rem;
+        text-align: right;
+
+        &--high { color: $color-green; }
+        &--mid  { color: #f59e0b; }
+        &--low  { color: $color-validate; }
+    }
+}
+
+.al-no-results {
+    font-size: 1.2rem;
+    color: $text-muted;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    i { color: $accent; }
+}
+
+// ── Error list ─────────────────────────────────────────────────────────
+.al-errors {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-height: 20rem;
+    overflow-y: auto;
+}
+
+.al-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.8rem 1.2rem;
+    background: rgba($color-validate, 0.06);
+    border: 1px solid rgba($color-validate, 0.2);
+    border-radius: $r-sm;
+
+    &__icon { color: $color-validate; font-size: 1.2rem; margin-top: 0.2rem; flex-shrink: 0; }
+
+    &__body { display: flex; flex-direction: column; gap: 0.2rem; }
+
+    &__file {
+        font-family: monospace;
+        font-size: 1.1rem;
+        color: $text-secondary;
+        word-break: break-all;
+    }
+
+    &__reason {
+        font-size: 1.1rem;
+        color: $color-validate;
+    }
+}

@@ -1,119 +1,119 @@
-.folder-status {
-    width:   100%;
-    padding: 16px;
+// .folder-status {
+//     width:   100%;
+//     padding: 16px;
 
-    &__spinner {
-        display:         flex;
-        justify-content: center;
-        padding:         40px 0;
-    }
+//     &__spinner {
+//         display:         flex;
+//         justify-content: center;
+//         padding:         40px 0;
+//     }
 
-    &__empty {
-        display:        flex;
-        flex-direction: column;
-        align-items:    center;
-        gap:            8px;
-        padding:        40px 0;
-        color:          #aaa;
+//     &__empty {
+//         display:        flex;
+//         flex-direction: column;
+//         align-items:    center;
+//         gap:            8px;
+//         padding:        40px 0;
+//         color:          #aaa;
 
-        i { font-size: 2rem; }
-        p { font-size: 14px; margin: 0; }
-    }
-}
+//         i { font-size: 2rem; }
+//         p { font-size: 14px; margin: 0; }
+//     }
+// }
 
-// ── Two-panel layout ────────────────────────────────────────────────────────
-.folder-status-layout {
-    display:   flex;
-    flex-direction: column;
-    gap:       24px;
-}
+// // ── Two-panel layout ────────────────────────────────────────────────────────
+// .folder-status-layout {
+//     display:   flex;
+//     flex-direction: column;
+//     gap:       24px;
+// }
 
-// ── Panel shared styles ──────────────────────────────────────────────────────
-.folder-panel {
-    background:    #ffffff;
-    border:        1px solid #e5e7eb;
-    border-radius: 10px;
-    padding:       16px 20px;
+// // ── Panel shared styles ──────────────────────────────────────────────────────
+// .folder-panel {
+//     background:    #ffffff;
+//     border:        1px solid #e5e7eb;
+//     border-radius: 10px;
+//     padding:       16px 20px;
 
-    &__header {
-        display:         flex;
-        align-items:     center;
-        justify-content: space-between;
-        margin-bottom:   14px;
-    }
+//     &__header {
+//         display:         flex;
+//         align-items:     center;
+//         justify-content: space-between;
+//         margin-bottom:   14px;
+//     }
 
-    &__title {
-        font-size:   15px;
-        font-weight: 700;
-        color:       #1a1a1a;
-        margin:      0;
-    }
-}
+//     &__title {
+//         font-size:   15px;
+//         font-weight: 700;
+//         color:       #1a1a1a;
+//         margin:      0;
+//     }
+// }
 
-// ── PrimeNG tree overrides ───────────────────────────────────────────────────
-::ng-deep .folder-status__tree {
-    border:     none !important;
-    background: transparent !important;
+// // ── PrimeNG tree overrides ───────────────────────────────────────────────────
+// ::ng-deep .folder-status__tree {
+//     border:     none !important;
+//     background: transparent !important;
 
-    .p-tree-node-content {
-        padding:       4px 6px !important;
-        border-radius: 6px;
+//     .p-tree-node-content {
+//         padding:       4px 6px !important;
+//         border-radius: 6px;
 
-        &:hover {
-            background: #f5f5f5 !important;
-        }
-    }
+//         &:hover {
+//             background: #f5f5f5 !important;
+//         }
+//     }
 
-    .p-tree-node-label {
-        width: 100%;
-    }
-}
+//     .p-tree-node-label {
+//         width: 100%;
+//     }
+// }
 
-// ── Folder row ──────────────────────────────────────────────────────────────
-.tree-folder {
-    display:     flex;
-    align-items: center;
-    gap:         10px;
-    width:       100%;
-    padding:     4px 0;
+// // ── Folder row ──────────────────────────────────────────────────────────────
+// .tree-folder {
+//     display:     flex;
+//     align-items: center;
+//     gap:         10px;
+//     width:       100%;
+//     padding:     4px 0;
 
-    &__name {
-        font-weight:   600;
-        font-size:     13px;
-        color:         #222;
-        flex:          1;
-        overflow:      hidden;
-        text-overflow: ellipsis;
-        white-space:   nowrap;
-    }
+//     &__name {
+//         font-weight:   600;
+//         font-size:     13px;
+//         color:         #222;
+//         flex:          1;
+//         overflow:      hidden;
+//         text-overflow: ellipsis;
+//         white-space:   nowrap;
+//     }
 
-    &__counts {
-        font-size:   12px;
-        color:       #888;
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
+//     &__counts {
+//         font-size:   12px;
+//         color:       #888;
+//         white-space: nowrap;
+//         flex-shrink: 0;
+//     }
 
-    &__not-loaded {
-        color:       #ef4444;
-        font-weight: 600;
-    }
-}
+//     &__not-loaded {
+//         color:       #ef4444;
+//         font-weight: 600;
+//     }
+// }
 
-// ── File row ────────────────────────────────────────────────────────────────
-.tree-file {
-    display:     flex;
-    align-items: center;
-    gap:         8px;
-    width:       100%;
-    padding:     2px 0;
+// // ── File row ────────────────────────────────────────────────────────────────
+// .tree-file {
+//     display:     flex;
+//     align-items: center;
+//     gap:         8px;
+//     width:       100%;
+//     padding:     2px 0;
 
-    &__name {
-        font-size:     13px;
-        color:         #555;
-        flex:          1;
-        overflow:      hidden;
-        text-overflow: ellipsis;
-        white-space:   nowrap;
-    }
-}
+//     &__name {
+//         font-size:     13px;
+//         color:         #555;
+//         flex:          1;
+//         overflow:      hidden;
+//         text-overflow: ellipsis;
+//         white-space:   nowrap;
+//     }
+// }

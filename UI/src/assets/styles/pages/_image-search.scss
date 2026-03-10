@@ -1,224 +1,108 @@
-.p-step-title {
-  color: $color-gray-300 !important;
-}
+// ═══════════════════════════════════════════════════════════════════════
+// IMAGE-SEARCH PAGE
+// ═══════════════════════════════════════════════════════════════════════
 
-.p-step-active .p-step-title {
-  color: $color-diamond !important;
-  font-weight: 600;
-}
-
+// ── Step panel loading overlay ────────────────────────────────────────
 .loading-box {
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.55);
-  z-index: 50;
-
-  .p-progressspinner {
     position: absolute;
-    inset: 50%;
-    transform: translate(-50%, -50%);
-  }
-}
-
-// .query-form {
-//   display: flex;
-//   flex-direction: column;
-//   align-items: center;
-
-//   &__img-box {
-//     width: 60%;
-//     height: 35rem;
-//     border: 2px dashed $color-gray-700;
-//     background-color: $color-gray-900;
-//     border-radius: 1rem;
-//     margin-bottom: 2rem;
-//     position: relative;
-//   }
-
-//   &__upload-text {
-//     color: $color-gray-400;
-//     position: absolute;
-//     top: 50%;
-//     left: 50%;
-//     transform: translate(-50%, -50%);
-//   }
-
-//   &__img {
-//     width: 100%;
-//     height: 100%;
-//     border-radius: 1rem;
-//     object-fit: cover;
-//   }
-
-//   &__btn,
-//   &__footer {
-//     width: 60%;
-
-//     & button {
-//       width: 100%;
-
-//     }
-//   }
-// }
-
-.query-form {
-  background-color: $color-gray-100;
-  border: 1px solid $color-gray-800;
-  border-radius: 1rem;
-  width: 60%;
-  padding: 4rem 2rem;
-  margin: 1rem auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-shadow: 2rem 2rem 4rem rgba(0, 0, 0, 0.5);
-  &__lbl {
-    font-size: 1.3rem;
-    color: $color-gray-800;
-    margin-bottom: 0.5rem;
-    align-self: flex-start;
-  }
-
-  &__txt-box {
-    width: 100%;
-    background-color: $color-gray-950;
-    color: $color-gray-200;
-    border: 1px solid $color-gray-700;
-    margin-bottom: 2rem;
-  }
-
-  &__upload-btn {
-    width: 90%;
-
-    & button {
-      width: 100%;
-    }
-  }
-
-  &__footer {
-    margin-top: 4rem;
-    align-self: flex-end;
-  }
-}
-
-.folder-form {
-  background-color: $color-gray-100;
-  border: 1px solid $color-gray-800;
-  border-radius: 1rem;
-  width: 60%;
-  padding: 4rem 2rem;
-  margin: 1rem auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-shadow: 2rem 2rem 4rem rgba(0, 0, 0, 0.5);
-  &__lbl {
-    font-size: 1.3rem;
-    color: $color-gray-800;
-    margin-bottom: 0.5rem;
-    align-self: flex-start;
-  }
-
-  &__txt-box {
-    width: 100%;
-    background-color: $color-gray-950;
-    color: $color-gray-200;
-    border: 1px solid $color-gray-700;
-    margin-bottom: 2rem;
-  }
-
-  &__upload-btn {
-    width: 90%;
-
-    & button {
-      width: 100%;
-    }
-  }
-
-  &__footer {
-    margin-top: 4rem;
-    align-self: flex-end;
-  }
-}
-
-.search-form {
-  // width: 90%;
-  background-color: $color-gray-100;
-  border: 1px solid $color-gray-800;
-  border-radius: 1rem;
-  padding: 4rem 2rem;
-  box-shadow: 2rem 2rem 4rem rgba(0, 0, 0, 0.5);
-
-  margin: 1rem auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 90%;
-
-  &__lbl {
-    width: 60%;
-    color: $color-gray-800;
-    font-size: 1.3rem;
-    margin: 0.4rem 0;
-  }
-
-  &__img-box {
-    width: 60%;
-    height: 35rem;
-    border: 2px dashed $color-gray-700;
-    background-color: $color-gray-900;
-    border-radius: 1rem;
-    margin-bottom: 2rem;
-    position: relative;
-  }
-
-  &__img {
-    width: 100%;
-    height: 100%;
-    border-radius: 1rem;
-    object-fit: cover;
-  }
-
-  &__txt-box,
-  &__search-btn {
-    width: 60%;
-
-    & button {
-    margin-top: 3rem;
-
-      width: 100%;
-    }
-  }
-
-  &__select{
-    width: 60%;
-    margin-bottom: 1rem;
-  }
-
-  &__footer {
-    // display: inline-block;
-    margin-top: 4rem;
-    align-self: flex-end;
-  }
-}
-
-.search-card {
-  &__heading {
-    color: $color-gray-200;
-    font-size: 1.6rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  &__img-container {
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 50;
+    border-radius: $r-lg;
     display: flex;
-    flex-wrap: wrap;
-    gap: 4rem;
-    margin-top: 2rem;
-  }
+    align-items: center;
+    justify-content: center;
+
+    .p-progressspinner { width: 48px !important; height: 48px !important; }
 }
 
-.membership-card-heading {
-  margin: 2rem 0rem;
-  text-align: center;
+// ── Lock stepper panels to fixed height so switching never causes jump ─
+::ng-deep .p-step-panels {
+    min-height: 34rem !important;
+}
+::ng-deep .p-step-panel {
+    padding: 0 !important;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// UNIFIED STEP FORM — one block, same size for every step
+// ═══════════════════════════════════════════════════════════════════════
+.step-form {
+    width: 52rem;
+    max-width: 100%;
+    margin: 2.4rem auto 0;
+    padding: 3.2rem;
+
+    background: $surface-overlay;
+    border: 1px solid $surface-border;
+    border-radius: $r-lg;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+
+    display: flex;
+    flex-direction: column;
+
+    // ── Label ─────────────────────────────────────────────────────
+    &__lbl {
+        display: block;
+        font-size: 1.2rem;
+        font-weight: 500;
+        color: $text-secondary;
+        letter-spacing: 0.02em;
+        margin-bottom: 0.7rem;
+        margin-top: 1.8rem;
+
+        &:first-child { margin-top: 0; }
+    }
+
+    // ── Text input ────────────────────────────────────────────────
+    &__input {
+        width: 100% !important;
+    }
+
+    // ── Select dropdown ───────────────────────────────────────────
+    &__select {
+        width: 100% !important;
+    }
+
+    // ── Primary CTA button ────────────────────────────────────────
+    &__action-btn {
+        margin-top: 2rem;
+
+        .p-button { width: 100% !important; }
+    }
+
+    // ── Nav footer — Back / Next ──────────────────────────────────
+    &__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 2.8rem;
+        padding-top: 2rem;
+        border-top: 1px solid $surface-border;
+
+        // Only one button → push it to the right
+        &--end { justify-content: flex-end; }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SEARCH RESULTS CARD
+// ═══════════════════════════════════════════════════════════════════════
+.search-card {
+    margin-top: 2.4rem;
+
+    &__heading {
+        font-size: 1.4rem;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: $text-secondary;
+    }
+
+    &__img-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2.4rem;
+        margin-top: 2rem;
+    }
 }

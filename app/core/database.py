@@ -1,14 +1,23 @@
 import os
+import json
 import sqlite3
+import uuid
+from datetime import datetime, timedelta
 from app.config import DB_PATH, FAISS_DIR
 from app.core.progress import set_progress, reset
 
+
+# ═══════════════════════════════════════════════════════════════════════
+# CONNECTION
+# ═══════════════════════════════════════════════════════════════════════
 
 def get_connection() -> sqlite3.Connection:
     os.makedirs(FAISS_DIR, exist_ok=True)
     con = sqlite3.connect(DB_PATH, check_same_thread=False)
     con.execute("PRAGMA journal_mode=WAL")
     con.execute("PRAGMA synchronous=NORMAL")
+
+    # ── files table ───────────────────────────────────────────────────
     con.execute("""
         CREATE TABLE IF NOT EXISTS files (
             id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,15 +31,47 @@ def get_connection() -> sqlite3.Connection:
         con.execute("ALTER TABLE files ADD COLUMN mtime REAL NOT NULL DEFAULT 0")
     except Exception:
         pass
+
     con.execute("CREATE INDEX IF NOT EXISTS idx_hash     ON files(hash)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_path     ON files(path)")
     con.execute("CREATE INDEX IF NOT EXISTS idx_faiss_id ON files(faiss_id)")
+
+    # ── activity_log table ────────────────────────────────────────────
+    # One row per search or folder-load operation.
+    # results / errors stored as JSON text columns.
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS activity_log (
+            id            TEXT    PRIMARY KEY,          -- UUID
+            type          TEXT    NOT NULL,             -- 'search' | 'sync'
+            timestamp     TEXT    NOT NULL,             -- UTC ISO-8601
+            folder        TEXT    NOT NULL,
+            query_image   TEXT,                         -- search only
+            duration_sec  REAL    NOT NULL DEFAULT 0,
+            result_count  INTEGER NOT NULL DEFAULT 0,   -- search only
+            indexed_count INTEGER NOT NULL DEFAULT 0,   -- sync only
+            error_count   INTEGER NOT NULL DEFAULT 0,
+            results       TEXT    NOT NULL DEFAULT '[]',-- JSON
+            errors        TEXT    NOT NULL DEFAULT '[]',-- JSON
+            status        TEXT    NOT NULL              -- 'success'|'partial'|'error'
+        )
+    """)
+    con.execute("""
+        CREATE INDEX IF NOT EXISTS idx_al_timestamp ON activity_log(timestamp DESC)
+    """)
+    con.execute("""
+        CREATE INDEX IF NOT EXISTS idx_al_type ON activity_log(type)
+    """)
+
     con.commit()
     return con
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# FILES TABLE — existing functions (unchanged)
+# ═══════════════════════════════════════════════════════════════════════
+
 def cleanup_missing_in_folder(con: sqlite3.Connection, index, folder_path: str):
-    folder_prefix = os.path.normpath(folder_path) + os.sep   # fix: os.sep prevents sibling folder match
+    folder_prefix = os.path.normpath(folder_path) + os.sep
     rows = con.execute(
         "SELECT path, faiss_id FROM files WHERE path LIKE ?",
         (folder_prefix + "%",)
@@ -76,7 +117,8 @@ def get_next_faiss_id(con: sqlite3.Connection) -> int:
     return (row[0] + 1) if row[0] is not None else 0
 
 
-def insert_file(con: sqlite3.Connection, path: str, hash_value: str, faiss_id: int, mtime: float):
+def insert_file(con: sqlite3.Connection, path: str, hash_value: str,
+                faiss_id: int, mtime: float):
     con.execute(
         "INSERT OR REPLACE INTO files (path, hash, faiss_id, mtime) VALUES (?,?,?,?)",
         (path, hash_value, faiss_id, mtime)
@@ -92,8 +134,7 @@ def delete_file(con: sqlite3.Connection, path: str):
 
 
 def get_folder_id_map(con: sqlite3.Connection, folder_path: str) -> dict:
-    """Returns {faiss_id: path} for all files under folder_path"""
-    folder_prefix = os.path.normpath(folder_path) + os.sep   # fix: os.sep prevents sibling folder match
+    folder_prefix = os.path.normpath(folder_path) + os.sep
     rows = con.execute(
         "SELECT faiss_id, path FROM files WHERE path LIKE ?",
         (folder_prefix + "%",)
@@ -102,7 +143,7 @@ def get_folder_id_map(con: sqlite3.Connection, folder_path: str) -> dict:
 
 
 def get_folder_hashes(con: sqlite3.Connection, folder_path: str) -> set:
-    folder_prefix = os.path.normpath(folder_path) + os.sep   # fix: os.sep prevents sibling folder match
+    folder_prefix = os.path.normpath(folder_path) + os.sep
     rows = con.execute(
         "SELECT hash FROM files WHERE path LIKE ?",
         (folder_prefix + "%",)
@@ -111,7 +152,6 @@ def get_folder_hashes(con: sqlite3.Connection, folder_path: str) -> set:
 
 
 def get_files_by_hashes(con: sqlite3.Connection, hashes: set) -> list:
-    """Returns list of (path, faiss_id) for given hashes"""
     if not hashes:
         return []
     placeholders = ",".join("?" * len(hashes))
@@ -122,10 +162,6 @@ def get_files_by_hashes(con: sqlite3.Connection, hashes: set) -> list:
 
 
 def get_folder_file_count(con: sqlite3.Connection, folder_path: str) -> int:
-    """
-    Returns count of files in DB under folder_path.
-    Used by search_service for quick check before deciding to sync.
-    """
     folder_prefix = os.path.normpath(folder_path) + os.sep
     cur = con.execute(
         "SELECT COUNT(*) FROM files WHERE path LIKE ?",
@@ -136,3 +172,108 @@ def get_folder_file_count(con: sqlite3.Connection, folder_path: str) -> int:
 
 def get_all_path(con: sqlite3.Connection) -> list:
     return con.execute("SELECT path FROM files").fetchall()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# ACTIVITY LOG TABLE — write
+# ═══════════════════════════════════════════════════════════════════════
+
+RETAIN_DAYS = 30
+
+
+def _prune_activity_log(con: sqlite3.Connection) -> None:
+    """Delete entries older than RETAIN_DAYS."""
+    cutoff = (datetime.utcnow() - timedelta(days=RETAIN_DAYS)).isoformat()
+    con.execute("DELETE FROM activity_log WHERE timestamp < ?", (cutoff,))
+
+
+def log_search(con: sqlite3.Connection, query_image: str, folder: str,
+               results: list, errors: list, duration_sec: float) -> None:
+    """Insert one search entry and prune old rows."""
+    status = ("error"   if not results and errors else
+              "partial" if errors          else "success")
+    _prune_activity_log(con)
+    con.execute("""
+        INSERT INTO activity_log
+            (id, type, timestamp, folder, query_image, duration_sec,
+             result_count, indexed_count, error_count, results, errors, status)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        str(uuid.uuid4()),
+        "search",
+        datetime.utcnow().isoformat(),
+        folder,
+        query_image,
+        round(duration_sec, 2),
+        len(results),   # result_count
+        0,              # indexed_count (n/a for search)
+        len(errors),
+        json.dumps(results, ensure_ascii=False),
+        json.dumps(errors,  ensure_ascii=False),
+        status,
+    ))
+    con.commit()
+
+
+def log_sync(con: sqlite3.Connection, folder: str, indexed_count: int,
+             errors: list, duration_sec: float) -> None:
+    """Insert one sync entry and prune old rows."""
+    status = ("error"   if indexed_count == 0 and errors else
+              "partial" if errors                        else "success")
+    _prune_activity_log(con)
+    con.execute("""
+        INSERT INTO activity_log
+            (id, type, timestamp, folder, query_image, duration_sec,
+             result_count, indexed_count, error_count, results, errors, status)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        str(uuid.uuid4()),
+        "sync",
+        datetime.utcnow().isoformat(),
+        folder,
+        None,           # query_image (n/a for sync)
+        round(duration_sec, 2),
+        0,              # result_count (n/a for sync)
+        indexed_count,
+        len(errors),
+        "[]",           # results (n/a for sync)
+        json.dumps(errors, ensure_ascii=False),
+        status,
+    ))
+    con.commit()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# ACTIVITY LOG TABLE — read
+# ═══════════════════════════════════════════════════════════════════════
+
+def get_activity_log(con: sqlite3.Connection, limit: int = 300) -> list:
+    """
+    Returns up to `limit` entries ordered newest-first.
+    JSON columns (results, errors) are parsed back to lists.
+    """
+    rows = con.execute("""
+        SELECT id, type, timestamp, folder, query_image, duration_sec,
+               result_count, indexed_count, error_count, results, errors, status
+        FROM   activity_log
+        ORDER  BY timestamp DESC
+        LIMIT  ?
+    """, (limit,)).fetchall()
+
+    entries = []
+    for row in rows:
+        entries.append({
+            "id":            row[0],
+            "type":          row[1],
+            "timestamp":     row[2],
+            "folder":        row[3],
+            "query_image":   row[4],
+            "duration_sec":  row[5],
+            "result_count":  row[6],
+            "indexed_count": row[7],
+            "error_count":   row[8],
+            "results":       json.loads(row[9]  or "[]"),
+            "errors":        json.loads(row[10] or "[]"),
+            "status":        row[11],
+        })
+    return entries
