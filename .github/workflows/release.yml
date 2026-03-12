@@ -1,0 +1,194 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+
+# ══════════════════════════════════════════════════════════════════════
+# BUILD WINDOWS
+# ══════════════════════════════════════════════════════════════════════
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install pyinstaller
+          pip install pywebview
+          pip install requests
+          pip install cryptography
+          pip install pillow
+          pip install numpy
+          pip install faiss-cpu
+          pip install onnxruntime
+          pip install psd-tools
+          pip install onnx
+
+      - name: Download encrypted model from release assets
+        run: |
+          $url = "https://github.com/${{ github.repository }}/releases/download/v1.0.0/clip_vitb32.onnx.enc"
+          New-Item -ItemType Directory -Force -Path "models"
+          Invoke-WebRequest -Uri $url -OutFile "models/clip_vitb32.onnx.enc"
+          Write-Host "Model downloaded: $(Get-Item models/clip_vitb32.onnx.enc | Select-Object -ExpandProperty Length) bytes"
+        shell: pwsh
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Angular
+        run: |
+          cd UI
+          npm install
+          npm run build
+
+      - name: Build Windows exe
+        run: |
+          pyinstaller --name Visara `
+            --windowed `
+            --icon visara-logo.ico `
+            --add-data "UI/dist/vynce-standalone/browser;UI/dist/vynce-standalone/browser" `
+            --add-data "models;models" `
+            --add-data "visara-logo.ico;." `
+            main.py
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Visara-Windows
+          path: dist/Visara.exe
+
+# ══════════════════════════════════════════════════════════════════════
+# BUILD MACOS
+# ══════════════════════════════════════════════════════════════════════
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install pyinstaller
+          pip install pywebview
+          pip install requests
+          pip install cryptography
+          pip install pillow
+          pip install numpy
+          pip install faiss-cpu
+          pip install onnxruntime
+          pip install psd-tools
+          pip install onnx
+
+      - name: Download encrypted model from release assets
+        run: |
+          mkdir -p models
+          curl -L \
+            "https://github.com/${{ github.repository }}/releases/download/v1.0.0/clip_vitb32.onnx.enc" \
+            -o "models/clip_vitb32.onnx.enc"
+          echo "Model size: $(wc -c < models/clip_vitb32.onnx.enc) bytes"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Angular
+        run: |
+          cd UI
+          npm install
+          npm run build
+
+      - name: Build macOS app
+        run: |
+          pyinstaller --name Visara \
+            --windowed \
+            --icon visara-logo.icns \
+            --add-data "UI/dist/vynce-standalone/browser:UI/dist/vynce-standalone/browser" \
+            --add-data "models:models" \
+            --add-data "visara-logo.icns:." \
+            main.py
+
+      - name: Sign app (free ad-hoc — removes Gatekeeper warning)
+        run: codesign --force --deep --sign - dist/Visara.app
+
+      - name: Zip macOS app
+        run: cd dist && zip -r ../Visara-macOS.zip Visara.app
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Visara-macOS
+          path: Visara-macOS.zip
+
+# ══════════════════════════════════════════════════════════════════════
+# CREATE RELEASE
+# ══════════════════════════════════════════════════════════════════════
+  release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Get version from tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Update version.json
+        run: |
+          cat > version.json << EOF
+          {
+            "version": "${{ env.VERSION }}",
+            "release_notes": "See GitHub release notes for details",
+            "windows": {
+              "url": "https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/Visara-Windows.exe"
+            },
+            "macos": {
+              "url": "https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/Visara-macOS.zip"
+            }
+          }
+          EOF
+
+      - name: Commit updated version.json
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add version.json
+          git commit -m "chore: update version.json to v${{ env.VERSION }}"
+          git push
+
+      - name: Create GitHub Release with both files
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Visara v${{ env.VERSION }}"
+          files: |
+            Visara-Windows/Visara.exe
+            Visara-macOS/Visara-macOS.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

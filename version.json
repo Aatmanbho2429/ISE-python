@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "release_notes": "Initial release",
+  "windows": {
+    "url": "https://github.com/Aatmanbho2429/ISE-python/releases/download/v1.0.0/Visara-Windows.exe"
+  },
+  "macos": {
+    "url": "https://github.com/Aatmanbho2429/ISE-python/releases/download/v1.0.0/Visara-macOS.zip"
+  }
+}
