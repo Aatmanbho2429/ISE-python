@@ -1,28 +1,38 @@
 import webview
 import os
-import platform                              # ← NEW
+import sys                                   # ← NEW
+import platform
 import threading
 from app.api import Api
 
 api      = Api()
-SYSTEM   = platform.system()                # ← NEW  "Windows" or "Darwin"
+SYSTEM   = platform.system()
 
 BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
 
-# ── CHANGED — .icns for macOS, .ico for Windows ───────────────────────
 ICON_PATH = os.path.join(BASE_DIR, "visara-logo.icns") if SYSTEM == "Darwin" \
        else os.path.join(BASE_DIR, "visara-logo.ico")
 
+# ── NEW — auto detect dev vs production ──────────────────────────────
+if getattr(sys, "frozen", False):
+    # Running as PyInstaller .exe/.app — use built Angular files
+    UI_PATH = os.path.join(
+        BASE_DIR, "UI", "dist", "vynce-standalone", "browser", "index.html"
+    )
+else:
+    # Running as python main.py — use dev server
+    UI_PATH = "http://localhost:4200/"
+
 # print(f"[icon] path  : {ICON_PATH}")
 # print(f"[icon] exists: {os.path.exists(ICON_PATH)}")
+# print(f"[ui]   path  : {UI_PATH}")
 
 
 def set_window_icon(window):
-    # ── CHANGED — Windows only, skip entirely on macOS ────────────────
     if SYSTEM != "Windows":
         return
     try:
-        import ctypes                        # ← moved inside — not needed on macOS
+        import ctypes
         WM_SETICON      = 0x0080
         ICON_SMALL      = 0
         ICON_BIG        = 1
@@ -54,15 +64,15 @@ def on_loaded():
     threading.Timer(1.5, lambda: set_window_icon(window)).start()
 
 
+# ── CHANGED — UI_PATH instead of hardcoded localhost ─────────────────
 window = webview.create_window(
     "Visara",
-    "http://localhost:4200/",
+    UI_PATH,
     js_api=api
 )
 
 window.events.loaded += on_loaded
 
-# ── CHANGED — edgechromium + args for Windows, native WebKit for macOS
 if SYSTEM == "Windows":
     webview.start(
         gui="edgechromium",
@@ -72,7 +82,6 @@ if SYSTEM == "Windows":
         args=["--allow-file-access-from-files", "--disable-web-security"]
     )
 else:
-    # macOS — native WebKit, no gui= param needed
     webview.start(
         debug=True,
         http_server=True,
