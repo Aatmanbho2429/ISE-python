@@ -1,11 +1,9 @@
+<!-- Kept exactly the same — main app shell -->
 <div class="app-shell" [class.sidebar-collapsed]="isSidebarCollapsed">
 
     <aside class="sidebar" [class.collapsed]="isSidebarCollapsed">
         <div class="sidebar__logo">
-            <!-- Full horizontal logo — visible when expanded -->
             <img src="assets/images/visara-logo-horizontal.svg" alt="Visara" />
-
-            <!-- Small icon mark — visible when collapsed -->
             <div class="sidebar__logo__icon"></div>
         </div>
 
@@ -40,7 +38,8 @@
     </aside>
 
     <div class="main-area">
-        <button pButton icon="pi pi-bars" class="p-button-text sidebar-toggle" (click)="toggleSidebar()"></button>
+        <button pButton icon="pi pi-bars" class="p-button-text sidebar-toggle"
+            (click)="toggleSidebar()"></button>
         <main class="content">
             <router-outlet></router-outlet>
         </main>
@@ -48,37 +47,74 @@
 
 </div>
 
-<!-- ── License Invalid Overlay ───────────────────────────────────────── -->
-<div class="license-overlay" *ngIf="isLicenseInvalid">
+<!-- ── CHANGED — Login Screen (was License Invalid Overlay) ─────────── -->
+<div class="license-overlay" *ngIf="isLoginRequired">
     <div class="license-card">
 
         <div class="license-card__icon">
             <i class="pi pi-lock"></i>
         </div>
 
-        <h3 class="license-card__heading">{{ "lblInvalidLicenseHeading" | translate }}</h3>
-        <p class="license-card__message">{{ verifyLicenseResponse.message }}</p>
+        <h3 class="license-card__heading">Sign in to Visara</h3>
+        <p class="license-card__message">Enter your credentials to continue</p>
 
-        <div class="license-card__code" *ngIf="verifyLicenseResponse.code">
-            <span>Error {{ verifyLicenseResponse.code }}</span>
-        </div>
-
-        <div class="license-card__device" *ngIf="deviceId">
-            <span class="license-card__device-label">Your Device ID</span>
-            <div class="license-card__device-id">
-                <code>{{ deviceId }}</code>
-                <button pButton icon="pi pi-copy" class="p-button-text p-button-sm"
-                    (click)="copyDeviceId()" pTooltip="Copy to clipboard">
-                </button>
-            </div>
-            <span class="license-card__device-hint">
-                Send this to your vendor to receive your license file.
+        <!-- Email field -->
+        <div class="license-card__field">
+            <span class="p-input-icon-left" style="width:100%">
+                <i class="pi pi-envelope"></i>
+                <input
+                    pInputText
+                    type="email"
+                    placeholder="Email"
+                    [(ngModel)]="loginEmail"
+                    style="width:100%"
+                    (keyup.enter)="submitLogin()"
+                />
             </span>
         </div>
 
-        <div class="license-card__footer">
-            <p class="license-card__contact">{{ "lblInvalidLicenseMessage" | translate }}</p>
+        <!-- Password field -->
+        <div class="license-card__field" style="margin-top: 12px">
+            <span class="p-input-icon-left" style="width:100%">
+                <i class="pi pi-key"></i>
+                <input
+                    pInputText
+                    type="password"
+                    placeholder="Password"
+                    [(ngModel)]="loginPassword"
+                    style="width:100%"
+                    (keyup.enter)="submitLogin()"
+                />
+            </span>
         </div>
+
+        <!-- Error message -->
+        <div class="license-card__code" *ngIf="loginError" style="margin-top: 10px">
+            <span style="color: #ef4444">{{ loginError }}</span>
+        </div>
+
+        <!-- Login button -->
+        <div style="margin-top: 16px; width: 100%">
+            <button
+                pButton
+                label="Sign In"
+                icon="pi pi-sign-in"
+                [loading]="loginLoading"
+                (click)="submitLogin()"
+                style="width: 100%">
+            </button>
+        </div>
+
+        <!-- Device reset link -->
+        <!-- <div class="license-card__footer" style="margin-top: 12px">
+            <p class="license-card__contact">
+                Wrong device?
+                <a href="javascript:void(0)" (click)="requestDeviceReset()"
+                   style="color: #4f8ef7; cursor: pointer;">
+                    Request device reset
+                </a>
+            </p>
+        </div> -->
 
     </div>
 </div>

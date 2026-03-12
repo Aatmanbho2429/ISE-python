@@ -28,3 +28,10 @@ EMB_DIM     = 768
 
 CLIP_MEAN = [0.48145466, 0.4578275,  0.40821073]
 CLIP_STD  = [0.26862954, 0.26130258, 0.27577711]
+
+MODEL_ENC_PATH = os.path.join(BASE_DIR, "models", "clip_vitb32.onnx.enc")
+TOKEN_FILE = os.path.join(os.path.expanduser("~"), ".visara_token")
+
+SUPABASE_EDGE = "https://qpxvwdxuhgbthzbcppye.supabase.co/functions/v1"
+APP_VERSION = "1.0.0"
+VERSION_URL = "https://raw.githubusercontent.com/Aatmanbho2429/ISE-python/main/version.json"

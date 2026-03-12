@@ -1,7 +1,9 @@
 import threading
+import io
 import numpy as np
 import onnxruntime as ort
-from app.config import MODEL_PATH, CLIP_MEAN, CLIP_STD
+from cryptography.fernet import Fernet
+from app.config import MODEL_ENC_PATH, CLIP_MEAN, CLIP_STD  # ← changed MODEL_PATH to MODEL_ENC_PATH, added Fernet import
 
 
 class Embedder:
@@ -19,15 +21,27 @@ class Embedder:
         return cls._instance
 
     def __init__(self):
-        if self._ready:
-            return
+        pass  # ← changed: removed auto _setup() — now waits for set_key() after login
+
+    # ── NEW METHOD — called after login with key from Supabase ──────────
+    def set_key(self, key: str):
+        """Called after successful login with decryption key from Supabase."""
         with self._init_lock:
             if self._ready:
                 return
-            self._setup()
+            self._setup(key)
             self._ready = True
 
-    def _setup(self):
+    def _setup(self, key: str):  # ← changed: takes key parameter now
+        # ── NEW: decrypt model in memory ────────────────────────────────
+        with open(MODEL_ENC_PATH, "rb") as f:
+            encrypted_bytes = f.read()
+
+        fernet      = Fernet(key.encode())
+        model_bytes = fernet.decrypt(encrypted_bytes)
+        # ── end of new decrypt block ─────────────────────────────────────
+
+        # Everything below is exactly the same as your original
         providers = (
             ["CUDAExecutionProvider", "CPUExecutionProvider"]
             if "CUDAExecutionProvider" in ort.get_available_providers()
@@ -39,17 +53,34 @@ class Embedder:
         opts.inter_op_num_threads     = 4
         opts.intra_op_num_threads     = 4
 
-        self._session  = ort.InferenceSession(MODEL_PATH, opts, providers)
+        self._session  = ort.InferenceSession(model_bytes, opts, providers)  # ← changed MODEL_PATH to model_bytes
         self._in_name  = self._session.get_inputs()[0].name
         self._out_name = self._session.get_outputs()[0].name
         self._lock     = threading.Lock()
         self._mean     = np.array(CLIP_MEAN, dtype=np.float32)
         self._std      = np.array(CLIP_STD,  dtype=np.float32)
-        # print(f"[embedder] Model loaded: {MODEL_PATH}")
+        # print(f"[embedder] Model loaded: {MODEL_ENC_PATH}")
         # print(f"[embedder] Input: {self._in_name}  Output: {self._out_name}")
 
+    # ── NEW PROPERTY — check if model is loaded ──────────────────────────
+    @property
+    def is_ready(self) -> bool:
+        return self._ready
+
+    # ── NEW METHOD — called on logout ────────────────────────────────────
+    def reset(self):
+        """Unload model from memory on logout."""
+        with self._init_lock:
+            self._ready        = False
+            self._session      = None
+            Embedder._instance = None
+
+    # Everything below is exactly the same as your original
     def embed_batch(self, batch: np.ndarray) -> np.ndarray:
         """batch: (N,3,224,224) → returns (N, EMB_DIM) L2-normalized"""
+        if not self._ready:
+            raise RuntimeError("Model not loaded — login required")
+
         with self._lock:
             raw = self._session.run([self._out_name], {self._in_name: batch})[0]
 

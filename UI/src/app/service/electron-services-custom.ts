@@ -7,9 +7,7 @@ import { FolderStatusResponse } from '../models/response/folderStatusResponse';
 })
 export class ElectronServicesCustom {
 
-  constructor(public electron: ElectronService) {
-
-  }
+  constructor(public electron: ElectronService) { }
 
   async Search(query_string: string, folder_path: string, number_of_results: number) {
     let result = await window.pywebview.api.start_search(query_string, folder_path, number_of_results);
@@ -23,11 +21,6 @@ export class ElectronServicesCustom {
 
   async OpenFileDialog(): Promise<string> {
     let result = await window.pywebview.api.selectFile();
-    return result;
-  }
-
-  async ValidateLicense(): Promise<any> {
-    let result = await window.pywebview.api.validateLicense();
     return result;
   }
 
@@ -58,21 +51,46 @@ export class ElectronServicesCustom {
   async getThumbnail(path: string): Promise<string> {
     const result = await window.pywebview.api.get_thumbnail(path);
     return result;
-    return (window as any).pywebview.api.get_thumbnail(path);
   }
 
   getDeviceId(): Promise<string> {
     return (window as any).pywebview.api.getDeviceId();
   }
 
-  validateLicense(): Promise<string> {
-    return (window as any).pywebview.api.validateLicense();
-  }
-
   async getActivityLog(): Promise<any[]> {
     const raw = await (window as any).pywebview.api.get_activity_log();
     return typeof raw === 'string' ? JSON.parse(raw) : raw;
   }
+
+  // ── REMOVED validateLicense() ────────────────────────────────────────
+  // ── NEW auth methods ─────────────────────────────────────────────────
+
+  validateLogin(): Promise<string> {
+    return (window as any).pywebview.api.validateLogin();
+  }
+
+  login(email: string, password: string): Promise<string> {
+    return (window as any).pywebview.api.login(email, password);
+  }
+
+  logout(): Promise<string> {
+    return (window as any).pywebview.api.logout();
+  }
+
+  requestDeviceReset(email: string, reason: string): Promise<string> {
+    return (window as any).pywebview.api.requestDeviceReset(email, reason);
+  }
+
+  // ── NEW update methods ────────────────────────────────────────────────
+
+  checkForUpdate(): Promise<string> {
+    return (window as any).pywebview.api.checkForUpdate();
+  }
+
+  downloadUpdate(url: string, version: string): Promise<string> {
+    return (window as any).pywebview.api.downloadUpdate(url, version);
+  }
+
 }
 
 declare global {
